@@ -50,9 +50,30 @@ const isAuthorizedUser = () => {
     if (user === null) {
       return false;
     }
-    const authorizedUsers =
-      config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
-    return authorizedUsers[0] === '' || authorizedUsers.includes(user.userName);
+
+    // Claim-based authorization for the settings page
+    const claimName = config.runtime.TERRALIST_SETTINGS_CLAIM_NAME;
+    const claimValues = config.runtime.TERRALIST_SETTINGS_CLAIM_VALUES;
+
+    if (!claimName || !claimValues) {
+      // If no specific claim is required for settings, allow access to any authenticated user.
+      return true;
+    }
+
+    const allowedValues = claimValues.split(',');
+    if (user.claims && user.claims[claimName]) {
+      const userClaims = user.claims[claimName];
+      if (Array.isArray(userClaims)) {
+        // Handle array of claims (like 'groups')
+        return userClaims.some(claim => allowedValues.includes(claim));
+      } else if (typeof userClaims === 'string') {
+        // Handle single string claim
+        return allowedValues.includes(userClaims);
+      }
+    }
+
+    // User does not have the required claim.
+    return false;
   };
 };
 

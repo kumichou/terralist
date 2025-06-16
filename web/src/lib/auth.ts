@@ -7,6 +7,7 @@ type Session = {
 type UserSession = {
   userName: string;
   userEmail: string;
+  claims: { [key: string]: unknown };
 };
 
 const sessionKeys: Session = {
@@ -69,10 +70,12 @@ const UserStore = {
     }
 
     const session = actions.download();
+    const claims = sessionStorage.getItem('_auth.session.user.claims');
 
     return {
       userName: session.userName,
-      userEmail: session.userEmail
+      userEmail: session.userEmail,
+      claims: claims ? JSON.parse(claims) : {}
     } satisfies UserSession;
   },
 
@@ -93,6 +96,13 @@ const UserStore = {
         userEmail: data.email
       };
 
+      if (data.claims) {
+        sessionStorage.setItem(
+          '_auth.session.user.claims',
+          JSON.stringify(data.claims)
+        );
+      }
+
       actions.upload(session);
     }
   },
@@ -102,6 +112,7 @@ const UserStore = {
 
     if (status === 'OK') {
       actions.reset();
+      sessionStorage.removeItem('_auth.session.user.claims');
     }
   }
 };

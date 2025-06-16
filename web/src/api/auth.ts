@@ -6,6 +6,7 @@ interface SessionDetails {
   authorityId: string;
   name: string;
   email: string;
+  claims: { [key: string]: unknown };
 }
 
 const actions = {
@@ -17,7 +18,7 @@ const actions = {
 
   clearSession: async () =>
     axios
-      .delete<boolean>(config.runtime.TERRALIST_SESSION_ENDPOINT)
+      .delete<boolean>(config.runtime.TERRALIST_CLEAR_SESSION_ENDPOINT)
       .then(handleResponse<boolean>)
       .catch(handleError)
 };
@@ -27,4 +28,4 @@ const Auth = {
   clearSession: async () => await actions.clearSession()
 };
 
-export { Auth };
+export { Auth, type SessionDetails };

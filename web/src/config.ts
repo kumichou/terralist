@@ -5,7 +5,9 @@ type RuntimeVariables = {
   TERRALIST_OAUTH_PROVIDERS: string[];
   TERRALIST_AUTHORIZATION_ENDPOINT: string;
   TERRALIST_SESSION_ENDPOINT: string;
-  TERRALIST_AUTHORIZED_USERS: string;
+  TERRALIST_CLEAR_SESSION_ENDPOINT: string;
+  TERRALIST_SETTINGS_CLAIM_NAME: string;
+  TERRALIST_SETTINGS_CLAIM_VALUES: string;
 };
 
 type BuildVariables = {
@@ -20,7 +22,9 @@ const DEFAULT_RUNTIME_VARIABLES: RuntimeVariables = {
   // TODO: These should point to a mock endpoint for local development
   TERRALIST_AUTHORIZATION_ENDPOINT: '',
   TERRALIST_SESSION_ENDPOINT: '',
-  TERRALIST_AUTHORIZED_USERS: ''
+  TERRALIST_CLEAR_SESSION_ENDPOINT: '',
+  TERRALIST_SETTINGS_CLAIM_NAME: '',
+  TERRALIST_SETTINGS_CLAIM_VALUES: ''
 };
 
 class Configuration {
@@ -52,11 +56,15 @@ class Configuration {
       this.runtime.TERRALIST_HOST_URL = data['host'];
       this.runtime.TERRALIST_CANONICAL_DOMAIN = data['domain'];
       this.runtime.TERRALIST_COMPANY_NAME = data['company'];
-      this.runtime.TERRALIST_AUTHORIZED_USERS = data['authorized_users'];
+      this.runtime.TERRALIST_SETTINGS_CLAIM_NAME = data['settings_claim_name'];
+      this.runtime.TERRALIST_SETTINGS_CLAIM_VALUES =
+        data['settings_claim_values'];
       this.runtime.TERRALIST_OAUTH_PROVIDERS = data['auth']['providers'];
       this.runtime.TERRALIST_AUTHORIZATION_ENDPOINT = data['auth']['endpoint'];
       this.runtime.TERRALIST_SESSION_ENDPOINT =
         data['auth']['session_endpoint'];
+      this.runtime.TERRALIST_CLEAR_SESSION_ENDPOINT =
+        data['auth']['clear_session_endpoint'];
     }
 
     sessionStorage.setItem('runtime', JSON.stringify(this.runtime));
