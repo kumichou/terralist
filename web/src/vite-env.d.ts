@@ -1,10 +1,10 @@
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
 
-interface ImportMetaBuildEnv {
+interface ImportMetaEnv {
   readonly TERRALIST_VERSION: string;
 }
 
 interface ImportMeta {
-  readonly build: ImportMetaBuildEnv;
+  readonly env: ImportMetaEnv;
 }

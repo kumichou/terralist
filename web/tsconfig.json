@@ -22,6 +22,8 @@
     },
     "types": [
       "node",
+      "svelte",
+      "vite/client"
     ]
   },
   "include": [
