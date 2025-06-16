@@ -36,7 +36,10 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Getting Started: getting-started.md
-  - Configuration: configuration.md
+  - Configuration: 
+    - configuration/index.md
+    - Options: configuration/options.md
+    - Examples: configuration/examples.md
   - Artifacts Documentation: artifacts-documentation.md
   - Developer Guide: 
     - dev-guide/index.md

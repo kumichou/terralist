@@ -1,4 +1,4 @@
-# Configuration
+# Options
 
 Terralist supports multiple types of configuration:
 
@@ -114,18 +114,6 @@ The secret to use when signing authorization tokens.
 | default | `n/a` |
 | cli | `--token-signing-secret` |
 | env | `TERRALIST_TOKEN_SIGNING_SECRET` |
-
-### `authorized-users`
-
-Comma separated list of users authorized to access the settings page. If empty, all users are allowed.
-
-| Name | Value |
-| --- | --- |
-| type | string |
-| required | no |
-| default | `n/a` |
-| cli | `--authorized-users` |
-| env | `TERRALIST_AUTHORIZED_USERS` |
 
 ### `oauth-provider`
 
@@ -356,6 +344,53 @@ The OpenID Connect scope requested during authorization to ensure to get claims 
 | default | `openid email` |
 | cli | `--oi-scope` |
 | env | `TERRALIST_OI_SCOPE` |
+
+### `oi-claim-name`
+
+The OpenID Connect Claim Name used to restrict access to Terralist.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--oi-claim-name` |
+| env | `TERRALIST_OIDC_CLAIM_NAME` |
+
+### `oi-claim-values`
+
+The OpenID Connect Claim Values used with the Claim Name to restrict access to Terralist.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | no |
+| default | `n/a` |
+| cli | `--oi-claim-values` |
+| env | `TERRALIST_OIDC_CLAIM_VALUES` |
+
+### `settings-claim-name`
+
+The OpenID Connect Claim Name used to restrict access to the Settings Web page.
+
+| Name | Value |
+| --- | -- |
+| type | string |
+| default | `n/a` |
+| cli | `--settings-claim-name` |
+| env | `TERRALIST_SETTINGS_CLAIM_NAME` |
+
+### `settings-claim-values`
+
+The OpenID Connect Claim Values used to restrict access to the Settings Web page.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| default | `n/a` |
+| cli | `--settings-claim-values` |
+| env | `TERRALIST_SETTINGS_CLAIM_VALUES` |
 
 ### `database-backend`
 
