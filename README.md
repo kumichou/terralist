@@ -62,3 +62,12 @@ Check the official documentation on [www.terralist.io](https://www.terralist.io/
 ## Contributions
 
 All contributions are welcome. If you want to contribute, open an issue or fork the repository and open a PR.
+
+### Local Development Tools
+
+**NOTE:** If you use [ASDF](https://asdf-vm.com/) or [Mise](https://mise.jdx.dev/) these tools are easily managed from the [.tool-versions](./.tool-versions) file in the repo.
+
+- Golang 1.24.1
+- Task   3.44.0
+- NodeJS 21.6.2
+- Yarn 1.22.22
