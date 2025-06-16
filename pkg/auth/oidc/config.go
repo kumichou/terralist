@@ -13,6 +13,8 @@ type Config struct {
 	TokenUrl                   string
 	UserInfoUrl                string
 	Scope                      string
+	ClaimName                  string
+	ClaimValues                string
 	TerralistSchemeHostAndPort string
 }
 

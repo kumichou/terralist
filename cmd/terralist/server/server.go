@@ -181,7 +181,8 @@ func (s *Command) run() error {
 		ModulesAnonymousRead:   flags[ModulesAnonymousReadFlag].(*cli.BoolFlag).Value,
 		ProvidersAnonymousRead: flags[ProvidersAnonymousReadFlag].(*cli.BoolFlag).Value,
 		Home:                   flags[HomeFlag].(*cli.PathFlag).Value,
-		AuthorizedUsers:        flags[AuthorizedUsersFlag].(*cli.StringFlag).Value,
+		SettingsClaimName:      flags[SettingsClaimNameFlag].(*cli.StringFlag).Value,
+		SettingsClaimValues:    flags[SettingsClaimValuesFlag].(*cli.StringFlag).Value,
 	}
 
 	if s.RunningMode == "debug" {
@@ -266,6 +267,8 @@ func (s *Command) run() error {
 			TokenUrl:                   flags[OidcTokenUrlFlag].(*cli.StringFlag).Value,
 			UserInfoUrl:                flags[OidcUserInfoUrlFlag].(*cli.StringFlag).Value,
 			Scope:                      flags[OidcScopeFlag].(*cli.StringFlag).Value,
+			ClaimName:                  flags[OidcClaimNameFlag].(*cli.StringFlag).Value,
+			ClaimValues:                flags[OidcClaimValuesFlag].(*cli.StringFlag).Value,
 			TerralistSchemeHostAndPort: userConfig.URL,
 		})
 	}

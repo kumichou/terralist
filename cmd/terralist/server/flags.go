@@ -57,6 +57,8 @@ const (
 	OidcTokenUrlFlag     = "oi-token-url"
 	OidcUserInfoUrlFlag  = "oi-userinfo-url"
 	OidcScopeFlag        = "oi-scope"
+	OidcClaimNameFlag    = "oi-claim-name"
+	OidcClaimValuesFlag  = "oi-claim-values"
 
 	TokenSigningSecretFlag = "token-signing-secret"
 
@@ -94,7 +96,8 @@ const (
 
 	CustomCompanyNameFlag = "custom-company-name"
 
-	AuthorizedUsersFlag = "authorized-users"
+	SettingsClaimNameFlag   = "settings-claim-name"
+	SettingsClaimValuesFlag = "settings-claim-values"
 )
 
 var flags = map[string]cli.Flag{
@@ -242,6 +245,12 @@ var flags = map[string]cli.Flag{
 		Description:  "The scopes requested during OIDC authorization.",
 		DefaultValue: "openid email",
 	},
+	OidcClaimNameFlag: &cli.StringFlag{
+		Description: "The OIDC claim name to use for authorization.",
+	},
+	OidcClaimValuesFlag: &cli.StringFlag{
+		Description: "The OIDC claim values the user must have for authorization. Comma separated.",
+	},
 
 	TokenSigningSecretFlag: &cli.StringFlag{
 		Description: "The secret to use when signing authorization tokens.",
@@ -344,10 +353,13 @@ var flags = map[string]cli.Flag{
 	},
 
 	CustomCompanyNameFlag: &cli.StringFlag{
-		Description: "The name of the company hosting the Terralist instance.",
+		Description: "The custom company name to show in the UI.",
 	},
 
-	AuthorizedUsersFlag: &cli.StringFlag{
-		Description: "The list of users that are authorized to access the Terralist instance (comma separated).",
+	SettingsClaimNameFlag: &cli.StringFlag{
+		Description: "The OIDC claim name to use for settings page authorization.",
+	},
+	SettingsClaimValuesFlag: &cli.StringFlag{
+		Description: "The OIDC claim values the user must have for settings page authorization. Comma separated.",
 	},
 }

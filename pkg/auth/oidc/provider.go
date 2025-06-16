@@ -18,6 +18,8 @@ type Provider struct {
 	UserInfoUrl  string
 	Scope        string
 	RedirectUrl  string
+	ClaimName    string
+	ClaimValues  string
 }
 
 type tokenResponse struct {
@@ -53,13 +55,14 @@ func (p *Provider) GetUserDetails(code string, user *auth.User) error {
 		return err
 	}
 
-	name, email, err := p.PerformUserInfoRequest(t)
+	name, email, claims, err := p.PerformUserInfoRequest(t)
 	if err != nil {
 		return err
 	}
 
 	user.Name = name
 	user.Email = email
+	user.Claims = claims
 
 	return nil
 }
@@ -100,10 +103,10 @@ func (p *Provider) PerformAccessTokenRequest(code string, t *tokenResponse) erro
 	return nil
 }
 
-func (p *Provider) PerformUserInfoRequest(t tokenResponse) (string, string, error) {
+func (p *Provider) PerformUserInfoRequest(t tokenResponse) (string, string, map[string]interface{}, error) {
 	req, err := http.NewRequest(http.MethodGet, p.UserInfoUrl, nil)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -111,30 +114,56 @@ func (p *Provider) PerformUserInfoRequest(t tokenResponse) (string, string, erro
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return "", "", fmt.Errorf("oidc user info request responded with status %d", res.StatusCode)
+		return "", "", nil, fmt.Errorf("oidc user info request responded with status %d", res.StatusCode)
 	}
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
+
+	if p.ClaimName != "" && p.ClaimValues != "" {
+		allowedValues := strings.Split(p.ClaimValues, ",")
+		if claims, ok := data[p.ClaimName].([]interface{}); ok {
+			userClaims := make(map[string]bool)
+			for _, claim := range claims {
+				if claimStr, ok := claim.(string); ok {
+					userClaims[claimStr] = true
+				}
+			}
+			for _, allowedValue := range allowedValues {
+				if _, ok := userClaims[allowedValue]; ok {
+					goto validationSuccess
+				}
+			}
+		} else if claim, ok := data[p.ClaimName].(string); ok {
+			for _, allowedValue := range allowedValues {
+				if claim == allowedValue {
+					goto validationSuccess
+				}
+			}
+		}
+		return "", "", nil, fmt.Errorf("user does not have the required claim")
+	}
+
+validationSuccess:
 
 	var sub string
 	var email string
 	var ok bool
 
 	if sub, ok = data["sub"].(string); !ok {
-		return "", "", fmt.Errorf("no user provided")
+		return "", "", nil, fmt.Errorf("no user provided")
 	}
 
 	if email, ok = data["email"].(string); !ok {
-		return "", "", fmt.Errorf("no email provided")
+		return "", "", nil, fmt.Errorf("no email provided")
 	}
 
-	return sub, email, nil
+	return sub, email, data, nil
 }

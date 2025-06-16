@@ -3,6 +3,7 @@ package jwt
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -55,7 +56,7 @@ func TestJWT_User(t *testing.T) {
 		t.Fatalf("extract returned with error: %v", err)
 	}
 
-	if *u != user {
+	if !reflect.DeepEqual(*u, user) {
 		t.Fatalf("user mismatch, expected = %v, got = %v", user, *u)
 	}
 }
