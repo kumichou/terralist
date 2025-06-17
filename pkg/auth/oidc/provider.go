@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"terralist/pkg/auth"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Provider is the concrete implementation of oauth.Engine.
@@ -128,14 +130,9 @@ func (p *Provider) PerformUserInfoRequest(t tokenResponse) (string, string, map[
 	}
 
 	// This is a temporary block to print the claims for debugging.
-	claimsJSON, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		fmt.Println("Error marshalling claims:", err)
-	} else {
-		fmt.Println("--- OIDC UserInfo Claims ---")
-		fmt.Println(string(claimsJSON))
-		fmt.Println("--------------------------")
-	}
+	log.Info().
+		Interface("claims", data).
+		Msg("Received OIDC UserInfo response")
 
 	if p.ClaimName != "" && p.ClaimValues != "" {
 		allowedValues := strings.Split(p.ClaimValues, ",")
