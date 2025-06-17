@@ -42,12 +42,16 @@ RUN go build -a -v -o terralist \
 
 FROM alpine:3.21
 
-RUN addgroup terralist && \
-    adduser -S -G terralist terralist && \
-    adduser terralist root && \
-    chown terralist:root /home/terralist/ && \
-    chmod g=u /home/terralist/ && \
-    chmod g=u /etc/passwd
+RUN <<EOF
+addgroup terralist
+adduser -S -G terralist terralist
+adduser terralist root
+chown terralist:terralist /home/terralist/
+chmod g=u /home/terralist/
+chmod g=u /etc/passwd
+mkdir -p /home/terralist/.terralist.d
+chown terralist:terralist /home/terralist/.terralist.d
+EOF
 
 RUN apk add --no-cache \
       git~=2.47 \

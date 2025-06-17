@@ -127,6 +127,16 @@ func (p *Provider) PerformUserInfoRequest(t tokenResponse) (string, string, map[
 		return "", "", nil, err
 	}
 
+	// This is a temporary block to print the claims for debugging.
+	claimsJSON, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling claims:", err)
+	} else {
+		fmt.Println("--- OIDC UserInfo Claims ---")
+		fmt.Println(string(claimsJSON))
+		fmt.Println("--------------------------")
+	}
+
 	if p.ClaimName != "" && p.ClaimValues != "" {
 		allowedValues := strings.Split(p.ClaimValues, ",")
 		if claims, ok := data[p.ClaimName].([]interface{}); ok {
