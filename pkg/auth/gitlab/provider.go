@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"terralist/pkg/auth"
+	"time"
 
 	"slices"
 
@@ -36,8 +37,10 @@ type tokenResponse struct {
 }
 
 var (
-	httpClient          = &http.Client{}
-	scope      []string = []string{"email", "openid"}
+	httpClient = &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	scope []string = []string{"email", "openid"}
 )
 
 func (p *Provider) Name() string {

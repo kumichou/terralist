@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"terralist/pkg/auth"
+	"time"
 )
 
 // Provider is the concrete implementation of oauth.Engine.
@@ -23,7 +24,9 @@ type tokenResponse struct {
 var (
 	oauthEndpoint = "https://bitbucket.org/site/oauth2"
 	apiEndpoint   = "https://api.bitbucket.org/2.0"
-	httpClient    = &http.Client{}
+	httpClient    = &http.Client{
+		Timeout: 30 * time.Second,
+	}
 )
 
 func (p *Provider) Name() string {

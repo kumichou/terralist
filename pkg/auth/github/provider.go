@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -35,7 +36,9 @@ type Team struct {
 }
 
 var (
-	httpClient = &http.Client{}
+	httpClient = &http.Client{
+		Timeout: 30 * time.Second,
+	}
 )
 
 func (p *Provider) Name() string {

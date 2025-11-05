@@ -1,20 +1,25 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"terralist/internal/server/controllers"
 	"terralist/internal/server/handlers"
+	"terralist/internal/server/models/oauth"
 	"terralist/internal/server/repositories"
 	"terralist/internal/server/services"
 	"terralist/pkg/api"
 	"terralist/pkg/auth"
 	"terralist/pkg/auth/jwt"
+	"terralist/pkg/auth/saml"
 	"terralist/pkg/database"
 	"terralist/pkg/file"
 	"terralist/pkg/rbac"
@@ -127,6 +132,188 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 	}
 
 	apiV1Group.Register(loginController)
+
+	// Register SAML endpoints only if SAML is configured as the auth provider
+	if samlProvider, ok := config.Provider.(interface {
+		GetSPMetadata() ([]byte, error)
+	}); ok {
+		// Create rate limiter for SAML ACS endpoint
+		// Limit: 10 requests per minute per IP address
+		// This protects against brute force attacks and DoS
+		acsRateLimiter := handlers.NewRateLimiter(10, 1*time.Minute)
+
+		// Enforce HTTPS for SAML endpoints via middleware
+		// This provides runtime protection even if behind a proxy
+		samlEndpoints := apiV1Group.RouterGroup().Group("/api/auth/saml")
+		samlEndpoints.Use(func(ctx *gin.Context) {
+			// Check if request is over HTTPS
+			// Note: This checks X-Forwarded-Proto for proxy scenarios
+			scheme := ctx.GetHeader("X-Forwarded-Proto")
+			if scheme == "" {
+				if ctx.Request.TLS != nil {
+					scheme = "https"
+				} else {
+					scheme = "http"
+				}
+			}
+
+			if strings.ToLower(scheme) != "https" {
+				log.Error().
+					Str("scheme", scheme).
+					Str("path", ctx.Request.URL.Path).
+					Str("remote_addr", ctx.ClientIP()).
+					Msg("SAML endpoint accessed over non-HTTPS connection - rejecting request")
+				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error":             "forbidden",
+					"error_description": "SAML endpoints require HTTPS transport for security",
+				})
+				return
+			}
+			ctx.Next()
+		})
+
+		// SAML metadata endpoint - serves the SP metadata XML for IdP configuration
+		// Registered at /v1/api/auth/saml/metadata
+		samlEndpoints.GET("/metadata", func(ctx *gin.Context) {
+			metadata, err := samlProvider.GetSPMetadata()
+			if err != nil {
+				log.Error().
+					AnErr("Error", err).
+					Msg("Failed to generate SAML metadata")
+				ctx.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			ctx.Data(http.StatusOK, "application/xml; charset=utf-8", metadata)
+		})
+
+		// SAML ACS (Assertion Consumer Service) endpoint - handles SAML POST binding
+		// Registered at /v1/api/auth/saml/acs to match the ACS URL configuration
+		// Apply rate limiting middleware to protect against brute force attacks
+		samlEndpoints.POST("/acs", handlers.RateLimitMiddleware(acsRateLimiter), func(ctx *gin.Context) {
+			// SAML uses POST with form data: SAMLResponse and RelayState
+			samlResponse := ctx.PostForm("SAMLResponse")
+			relayState := ctx.PostForm("RelayState")
+
+			if samlResponse == "" {
+				ctx.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+
+			// RelayState contains the OAuth state (encrypted payload)
+			if relayState == "" {
+				log.Warn().
+					Str("source", "relaystate_validation").
+					Msg("SAML ACS endpoint: RelayState is missing")
+				ctx.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+
+			// Validate RelayState for CSRF protection (size and format validation)
+			if err := saml.ValidateRelayState(relayState); err != nil {
+				log.Warn().
+					AnErr("error", err).
+					Str("source", "relaystate_validation").
+					Int("relaystate_size", len(relayState)).
+					Str("client_ip", ctx.ClientIP()).
+					Msg("SAML ACS endpoint: invalid RelayState detected (potential CSRF attack)")
+				ctx.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+
+			// Extract OAuth Request from RelayState
+			r, err := oauth.Payload(relayState).ToRequest(salt)
+			if err != nil {
+				// If we can't parse the request, we don't know where to redirect
+				ctx.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+
+			// Parse SAML response and extract user details
+			// Use UnpackCode which calls Provider.GetUserDetails internally
+			codeComponents, erro := loginService.UnpackCode(samlResponse, &r)
+			if erro != nil {
+				ctx.Redirect(http.StatusFound, redirectWithError(r.RedirectURI, r.State, erro))
+				return
+			}
+
+			// Get user details separately to extract groups (which aren't stored in CodeComponents)
+			var userDetails auth.User
+			if err := loginService.Provider.GetUserDetails(samlResponse, &userDetails); err != nil {
+				// If we can't get groups, continue with codeComponents (groups will be empty)
+				userDetails = auth.User{
+					Name:   codeComponents.UserName,
+					Email:  codeComponents.UserEmail,
+					Groups: []string{},
+				}
+			}
+
+			uri, err := url.Parse(r.RedirectURI)
+			if err != nil {
+				log.Warn().
+					AnErr("Error", err).
+					Str("RedirectURI", r.RedirectURI).
+					Msg("An invalid redirect URI was detected during the SAML callback.")
+
+				ctx.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+
+			// Check if the call was made from this origin
+			if uri.Host == hostURL.Host {
+				// There's no need in validating the request, if we made this call
+				// Save user session and redirect back
+				sess, err := config.Store.Get(ctx.Request)
+				if err != nil {
+					ctx.Redirect(
+						http.StatusFound,
+						redirectWithError(
+							uri.String(),
+							"",
+							oauth.WrapError(
+								fmt.Errorf("could not fetch the session"),
+								oauth.ServerError,
+							),
+						),
+					)
+					return
+				}
+
+				sess.Set("user", &auth.User{
+					Name:   userDetails.Name,
+					Email:  userDetails.Email,
+					Groups: userDetails.Groups,
+				})
+
+				if err := config.Store.Save(ctx.Request, ctx.Writer, sess); err != nil {
+					ctx.Redirect(
+						http.StatusFound,
+						redirectWithError(
+							uri.String(),
+							"",
+							oauth.WrapError(
+								fmt.Errorf("could not save session"),
+								oauth.ServerError,
+							),
+						),
+					)
+					return
+				}
+
+				// Redirect back
+				ctx.Redirect(http.StatusFound, uri.String())
+				return
+			}
+
+			redirectURL, erro := loginService.Redirect(codeComponents, &r)
+			if erro != nil {
+				ctx.Redirect(http.StatusFound, redirectWithError(r.RedirectURI, r.State, erro))
+				return
+			}
+
+			ctx.Redirect(http.StatusFound, redirectURL)
+		})
+	}
 
 	authorityRepository := &repositories.DefaultAuthorityRepository{
 		Database: config.Database,
@@ -248,6 +435,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		SessionDetailsRoute:   apiV1Group.Prefix() + loginController.SessionDetailsRoute(),
 		ClearSessionRoute:     apiV1Group.Prefix() + loginController.ClearSessionRoute(),
 		AuthorizedUsers:       userConfig.AuthorizedUsers,
+		SamlDisplayName:       userConfig.SamlDisplayName,
 	})
 
 	return &Server{
@@ -265,9 +453,44 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 	}, nil
 }
 
+// redirectWithError creates a redirect URL with OAuth error parameters.
+// Error messages are sanitized to prevent information leakage.
+func redirectWithError(uri string, state string, err oauth.Error) string {
+	stateQuery := ""
+	if state != "" {
+		stateQuery = fmt.Sprintf("&state=%s", state)
+	}
+
+	// Sanitize error message to prevent information leakage
+	errorMsg := err.Error()
+	// Use SAML sanitization if available (for SAML errors)
+	if sanitized := saml.SanitizeErrorForURL(errors.New(errorMsg)); sanitized != errorMsg {
+		errorMsg = sanitized
+	}
+
+	return fmt.Sprintf(
+		"%s?error=%s&error_description=%s%s",
+		uri,
+		err.Kind(),
+		url.QueryEscape(errorMsg),
+		stateQuery,
+	)
+}
+
 // Start initializes the routes and starts serving.
 func (s *Server) Start() error {
 	useTLS := s.CertFile != "" && s.KeyFile != ""
+
+	// Check if SAML is configured and warn about TLS requirement
+	if samlProvider, ok := s.Provider.(interface {
+		GetSPMetadata() ([]byte, error)
+	}); ok {
+		if !useTLS {
+			log.Warn().
+				Msg("SAML authentication requires TLS/HTTPS transport for security. Please ensure your reverse proxy terminates TLS, or configure cert-file and key-file for direct TLS support.")
+		}
+		_ = samlProvider // Suppress unused variable warning
+	}
 
 	if !useTLS {
 		log.Warn().

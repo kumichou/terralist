@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { defineConfig } from 'eslint/config';
 import { includeIgnoreFile } from '@eslint/compat';
 import path from 'node:path';
@@ -10,6 +11,20 @@ import svelteParser from 'svelte-eslint-parser';
 import stylistic from '@stylistic/eslint-plugin';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
+=======
+import { defineConfig } from 'eslint/config'
+import { includeIgnoreFile } from '@eslint/compat'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import eslint from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import prettierRecommended from 'eslint-plugin-prettier/recommended'
+import tsparser from '@typescript-eslint/parser'
+import svelteParser from 'svelte-eslint-parser'
+import stylistic from '@stylistic/eslint-plugin'
+import svelte from 'eslint-plugin-svelte'
+import globals from 'globals'
+>>>>>>> 8f86def (SAML Auth support)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,7 +66,11 @@ export default defineConfig([
       }
     },
     plugins: {
+<<<<<<< HEAD
       '@stylistic': stylistic
+=======
+      '@stylistic': stylistic,
+>>>>>>> 8f86def (SAML Auth support)
     },
     rules: {
       camelcase: 'off',
