@@ -9,6 +9,7 @@ import (
 	"terralist/pkg/auth/bitbucket"
 	"terralist/pkg/auth/gitlab"
 	"terralist/pkg/auth/oidc"
+	"terralist/pkg/auth/saml"
 
 	"terralist/internal/server"
 	"terralist/pkg/auth"
@@ -269,6 +270,19 @@ func (s *Command) run() error {
 			TokenUrl:                   flags[OidcTokenUrlFlag].(*cli.StringFlag).Value,
 			UserInfoUrl:                flags[OidcUserInfoUrlFlag].(*cli.StringFlag).Value,
 			Scope:                      flags[OidcScopeFlag].(*cli.StringFlag).Value,
+			TerralistSchemeHostAndPort: userConfig.URL,
+		})
+	case "saml":
+		provider, err = authFactory.NewProvider(auth.SAML, &saml.Config{ //nolint:forcetypeassert
+			IdPMetadataURL:             flags[SamlIdPMetadataURLFlag].(*cli.StringFlag).Value,
+			IdPMetadataFile:            flags[SamlIdPMetadataFileFlag].(*cli.StringFlag).Value,
+			SPEntityID:                 flags[SamlSPEntityIDFlag].(*cli.StringFlag).Value,
+			SPMetadataURL:              flags[SamlSPMetadataURLFlag].(*cli.StringFlag).Value,
+			NameAttribute:              flags[SamlNameAttributeFlag].(*cli.StringFlag).Value,
+			EmailAttribute:             flags[SamlEmailAttributeFlag].(*cli.StringFlag).Value,
+			GroupsAttribute:            flags[SamlGroupsAttributeFlag].(*cli.StringFlag).Value,
+			CertFile:                   flags[SamlCertFileFlag].(*cli.StringFlag).Value,
+			KeyFile:                    flags[SamlKeyFileFlag].(*cli.StringFlag).Value,
 			TerralistSchemeHostAndPort: userConfig.URL,
 		})
 	}

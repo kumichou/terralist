@@ -173,7 +173,7 @@ The OAuth 2.0 provider.
 | Name | Value |
 | --- | --- |
 | type | select |
-| choices | `github`, `bitbucket`, `gitlab`, `oidc` |
+| choices | `github`, `bitbucket`, `gitlab`, `oidc`, `saml` |
 | required | yes |
 | default | `n/a` |
 | cli | `--oauth-provider` |
@@ -395,6 +395,114 @@ The OpenID Connect scope requested during authorization to ensure to get claims 
 | default | `openid email` |
 | cli | `--oi-scope` |
 | env | `TERRALIST_OI_SCOPE` |
+
+### `saml-idp-metadata-url`
+
+The URL where the IdP metadata can be fetched from. Either this or `saml-idp-metadata-file` must be provided.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-metadata-url` |
+| env | `TERRALIST_SAML_IDP_METADATA_URL` |
+
+### `saml-idp-metadata-file`
+
+The local file path to the IdP metadata XML file. Either this or `saml-idp-metadata-url` must be provided.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-metadata-file` |
+| env | `TERRALIST_SAML_IDP_METADATA_FILE` |
+
+### `saml-sp-entity-id`
+
+The Service Provider entity ID, used to identify this SP to the IdP.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | yes |
+| default | `n/a` |
+| cli | `--saml-sp-entity-id` |
+| env | `TERRALIST_SAML_SP_ENTITY_ID` |
+
+### `saml-sp-metadata-url`
+
+The URL where the SP metadata can be fetched by the IdP. This is optional but recommended for IdP configuration.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-sp-metadata-url` |
+| env | `TERRALIST_SAML_SP_METADATA_URL` |
+
+### `saml-name-attribute`
+
+The SAML attribute name that contains the user's name.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `displayName` |
+| cli | `--saml-name-attribute` |
+| env | `TERRALIST_SAML_NAME_ATTRIBUTE` |
+
+### `saml-email-attribute`
+
+The SAML attribute name that contains the user's email.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `email` |
+| cli | `--saml-email-attribute` |
+| env | `TERRALIST_SAML_EMAIL_ATTRIBUTE` |
+
+### `saml-groups-attribute`
+
+The SAML attribute name that contains the user's groups. Used for RBAC group mapping.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-groups-attribute` |
+| env | `TERRALIST_SAML_GROUPS_ATTRIBUTE` |
+
+### `saml-cert-file`
+
+The path to the certificate file (PEM format) used for signing SAML requests. Optional but recommended for production.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-cert-file` |
+| env | `TERRALIST_SAML_CERT_FILE` |
+
+### `saml-key-file`
+
+The path to the private key file (PEM format) used for signing SAML requests. Optional but recommended for production.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-key-file` |
+| env | `TERRALIST_SAML_KEY_FILE` |
 
 ### `database-backend`
 

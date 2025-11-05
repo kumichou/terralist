@@ -22,6 +22,7 @@ const (
 	authorizeRoute = "/authorization"
 	tokenRoute     = "/token"
 	redirectRoute  = "/redirect"
+	samlACSRoute   = "/saml/acs"
 
 	sessionRoute = "/session"
 )
@@ -226,6 +227,125 @@ func (c *DefaultLoginController) Subscribe(apis ...*gin.RouterGroup) {
 						),
 					),
 				)
+			}
+
+			// Redirect back
+			ctx.Redirect(http.StatusFound, uri.String())
+			return
+		}
+
+		redirectURL, erro := c.LoginService.Redirect(codeComponents, &r)
+		if erro != nil {
+			ctx.Redirect(http.StatusFound, c.redirectWithError(r.RedirectURI, r.State, erro))
+			return
+		}
+
+		ctx.Redirect(http.StatusFound, redirectURL)
+	})
+
+	// SAML ACS (Assertion Consumer Service) endpoint - handles SAML POST binding
+	api.POST(samlACSRoute, func(ctx *gin.Context) {
+		// SAML uses POST with form data: SAMLResponse and RelayState
+		samlResponse := ctx.PostForm("SAMLResponse")
+		relayState := ctx.PostForm("RelayState")
+
+		if samlResponse == "" {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		// RelayState contains the OAuth state (encrypted payload)
+		if relayState == "" {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		// Extract OAuth Request from RelayState
+		r, err := oauth.Payload(relayState).ToRequest(c.EncryptSalt)
+		if err != nil {
+			// If we can't parse the request, we don't know where to redirect
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		// Parse SAML response and extract user details
+		// Use UnpackCode which calls Provider.GetUserDetails internally
+		codeComponents, erro := c.LoginService.UnpackCode(samlResponse, &r)
+		if erro != nil {
+			ctx.Redirect(http.StatusFound, c.redirectWithError(r.RedirectURI, r.State, erro))
+			return
+		}
+
+		// Get user details separately to extract groups (which aren't stored in CodeComponents)
+		var userDetails auth.User
+		if defaultService, ok := c.LoginService.(*services.DefaultLoginService); ok {
+			if err := defaultService.Provider.GetUserDetails(samlResponse, &userDetails); err != nil {
+				// If we can't get groups, continue with codeComponents (groups will be empty)
+				userDetails = auth.User{
+					Name:   codeComponents.UserName,
+					Email:  codeComponents.UserEmail,
+					Groups: []string{},
+				}
+			}
+		} else {
+			// Fallback if we can't access provider
+			userDetails = auth.User{
+				Name:   codeComponents.UserName,
+				Email:  codeComponents.UserEmail,
+				Groups: []string{},
+			}
+		}
+
+		uri, err := url.Parse(r.RedirectURI)
+		if err != nil {
+			log.Warn().
+				AnErr("Error", err).
+				Str("RedirectURI", r.RedirectURI).
+				Msg("An invalid redirect URI was detected during the SAML callback.")
+
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		// Check if the call was made from this origin
+		if uri.Host == c.HostURL.Host {
+			// There's no need in validating the request, if we made this call
+			// Save user session and redirect back
+			sess, err := c.Store.Get(ctx.Request)
+			if err != nil {
+				ctx.Redirect(
+					http.StatusFound,
+					c.redirectWithError(
+						uri.String(),
+						"",
+						oauth.WrapError(
+							fmt.Errorf("could not fetch the session"),
+							oauth.ServerError,
+						),
+					),
+				)
+				return
+			}
+
+			sess.Set("user", &auth.User{
+				Name:   userDetails.Name,
+				Email:  userDetails.Email,
+				Groups: userDetails.Groups,
+			})
+
+			if err := c.Store.Save(ctx.Request, ctx.Writer, sess); err != nil {
+				ctx.Redirect(
+					http.StatusFound,
+					c.redirectWithError(
+						uri.String(),
+						"",
+						oauth.WrapError(
+							fmt.Errorf("could not save session"),
+							oauth.ServerError,
+						),
+					),
+				)
+				return
 			}
 
 			// Redirect back

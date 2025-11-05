@@ -21,8 +21,8 @@
     bitbucket: 'BitBucket',
     github: 'GitHub',
     gitlab: 'GitLab',
-    google: 'Google',
-    oidc: 'OIDC'
+    oidc: 'OIDC',
+    saml: 'SAML'
   };
 
   let loginDisabled: boolean = false;

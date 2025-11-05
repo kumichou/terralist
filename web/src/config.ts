@@ -16,7 +16,7 @@ const DEFAULT_RUNTIME_VARIABLES: RuntimeVariables = {
   TERRALIST_HOST_URL: 'http://localhost:5758',
   TERRALIST_CANONICAL_DOMAIN: 'localhost',
   TERRALIST_COMPANY_NAME: '',
-  TERRALIST_OAUTH_PROVIDERS: ['github', 'bitbucket', 'gitlab', 'google'],
+  TERRALIST_OAUTH_PROVIDERS: ['github', 'bitbucket', 'gitlab', 'saml'],
   // TODO: These should point to a mock endpoint for local development
   TERRALIST_AUTHORIZATION_ENDPOINT: '',
   TERRALIST_SESSION_ENDPOINT: '',

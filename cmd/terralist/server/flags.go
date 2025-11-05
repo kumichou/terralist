@@ -58,6 +58,16 @@ const (
 	OidcUserInfoUrlFlag  = "oi-userinfo-url"
 	OidcScopeFlag        = "oi-scope"
 
+	SamlIdPMetadataURLFlag  = "saml-idp-metadata-url"
+	SamlIdPMetadataFileFlag = "saml-idp-metadata-file"
+	SamlSPEntityIDFlag      = "saml-sp-entity-id"
+	SamlSPMetadataURLFlag   = "saml-sp-metadata-url"
+	SamlNameAttributeFlag   = "saml-name-attribute"
+	SamlEmailAttributeFlag  = "saml-email-attribute"
+	SamlGroupsAttributeFlag = "saml-groups-attribute"
+	SamlCertFileFlag        = "saml-cert-file"
+	SamlKeyFileFlag         = "saml-key-file"
+
 	TokenSigningSecretFlag = "token-signing-secret"
 
 	ModulesStorageResolverFlag   = "modules-storage-resolver"
@@ -186,7 +196,7 @@ var flags = map[string]cli.Flag{
 
 	OAuthProviderFlag: &cli.StringFlag{
 		Description: "The OAuth 2.0 provider.",
-		Choices:     []string{"github", "bitbucket", "gitlab", "oidc"},
+		Choices:     []string{"github", "bitbucket", "gitlab", "oidc", "saml"},
 		Required:    true,
 	},
 	GitHubClientIDFlag: &cli.StringFlag{
@@ -246,6 +256,37 @@ var flags = map[string]cli.Flag{
 	OidcScopeFlag: &cli.StringFlag{
 		Description:  "The scopes requested during OIDC authorization.",
 		DefaultValue: "openid email",
+	},
+
+	SamlIdPMetadataURLFlag: &cli.StringFlag{
+		Description: "The URL where the IdP metadata can be fetched from. Either this or saml-idp-metadata-file must be provided.",
+	},
+	SamlIdPMetadataFileFlag: &cli.StringFlag{
+		Description: "The local file path to the IdP metadata XML file. Either this or saml-idp-metadata-url must be provided.",
+	},
+	SamlSPEntityIDFlag: &cli.StringFlag{
+		Description: "The Service Provider entity ID, used to identify this SP to the IdP.",
+		Required:    true,
+	},
+	SamlSPMetadataURLFlag: &cli.StringFlag{
+		Description: "The URL where the SP metadata can be fetched by the IdP. This is optional but recommended for IdP configuration.",
+	},
+	SamlNameAttributeFlag: &cli.StringFlag{
+		Description:  "The SAML attribute name that contains the user's name.",
+		DefaultValue: "displayName",
+	},
+	SamlEmailAttributeFlag: &cli.StringFlag{
+		Description:  "The SAML attribute name that contains the user's email.",
+		DefaultValue: "email",
+	},
+	SamlGroupsAttributeFlag: &cli.StringFlag{
+		Description: "The SAML attribute name that contains the user's groups. Used for RBAC group mapping.",
+	},
+	SamlCertFileFlag: &cli.StringFlag{
+		Description: "The path to the certificate file (PEM format) used for signing SAML requests. Optional but recommended for production.",
+	},
+	SamlKeyFileFlag: &cli.StringFlag{
+		Description: "The path to the private key file (PEM format) used for signing SAML requests. Optional but recommended for production.",
 	},
 
 	TokenSigningSecretFlag: &cli.StringFlag{
