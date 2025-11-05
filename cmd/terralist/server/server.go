@@ -9,6 +9,8 @@ import (
 	"terralist/pkg/auth/bitbucket"
 	"terralist/pkg/auth/gitlab"
 	"terralist/pkg/auth/oidc"
+	"terralist/pkg/auth/saml"
+	"time"
 
 	"terralist/internal/server"
 	"terralist/pkg/auth"
@@ -182,6 +184,7 @@ func (s *Command) run() error {
 		ProvidersAnonymousRead: flags[ProvidersAnonymousReadFlag].(*cli.BoolFlag).Value,
 		Home:                   flags[HomeFlag].(*cli.PathFlag).Value,
 		AuthorizedUsers:        flags[AuthorizedUsersFlag].(*cli.StringFlag).Value,
+		SamlDisplayName:        flags[SamlDisplayNameFlag].(*cli.StringFlag).Value,
 		RbacPolicyPath:         flags[RbacPolicyPathFlag].(*cli.StringFlag).Value,
 		RbacDefaultRole:        flags[RbacDefaultRoleFlag].(*cli.StringFlag).Value,
 		AuthTokenExpiration:    flags[AuthTokenExpirationFlag].(*cli.StringFlag).Value,
@@ -270,6 +273,138 @@ func (s *Command) run() error {
 			UserInfoUrl:                flags[OidcUserInfoUrlFlag].(*cli.StringFlag).Value,
 			Scope:                      flags[OidcScopeFlag].(*cli.StringFlag).Value,
 			TerralistSchemeHostAndPort: userConfig.URL,
+		})
+	case "saml":
+		// Parse duration flags for SAML configuration
+		httpClientTimeoutFlag, ok := flags[SamlHTTPClientTimeoutFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid HTTP client timeout flag type")
+		}
+		httpClientTimeout, _ := time.ParseDuration(httpClientTimeoutFlag.Value)
+
+		assertionClockSkewFlag, ok := flags[SamlAssertionClockSkewFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid assertion clock skew flag type")
+		}
+		assertionClockSkew, _ := time.ParseDuration(assertionClockSkewFlag.Value)
+
+		requestIDExpirationFlag, ok := flags[SamlRequestIDExpirationFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid request ID expiration flag type")
+		}
+		requestIDExpiration, _ := time.ParseDuration(requestIDExpirationFlag.Value)
+
+		requestIDCleanupIntervalFlag, ok := flags[SamlRequestIDCleanupIntervalFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid request ID cleanup interval flag type")
+		}
+		requestIDCleanupInterval, _ := time.ParseDuration(requestIDCleanupIntervalFlag.Value)
+
+		metadataRefreshIntervalFlag, ok := flags[SamlMetadataRefreshIntervalFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid metadata refresh interval flag type")
+		}
+		metadataRefreshInterval, _ := time.ParseDuration(metadataRefreshIntervalFlag.Value)
+
+		metadataRefreshCheckIntervalFlag, ok := flags[SamlMetadataRefreshCheckIntervalFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid metadata refresh check interval flag type")
+		}
+		metadataRefreshCheckInterval, _ := time.ParseDuration(metadataRefreshCheckIntervalFlag.Value)
+
+		maxAssertionAgeFlag, ok := flags[SamlMaxAssertionAgeFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid max assertion age flag type")
+		}
+		maxAssertionAge, _ := time.ParseDuration(maxAssertionAgeFlag.Value)
+
+		idpMetadataURLFlag, ok := flags[SamlIdPMetadataURLFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid IdP metadata URL flag type")
+		}
+
+		idpMetadataFileFlag, ok := flags[SamlIdPMetadataFileFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid IdP metadata file flag type")
+		}
+
+		idpEntityIDFlag, ok := flags[SamlIdPEntityIDFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid IdP entity ID flag type")
+		}
+
+		idpSSOURLFlag, ok := flags[SamlIdPSSOURLFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid IdP SSO URL flag type")
+		}
+
+		idpSSOCertificateFlag, ok := flags[SamlIdPSSOCertificateFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid IdP SSO certificate flag type")
+		}
+
+		nameAttributeFlag, ok := flags[SamlNameAttributeFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid name attribute flag type")
+		}
+
+		emailAttributeFlag, ok := flags[SamlEmailAttributeFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid email attribute flag type")
+		}
+
+		groupsAttributeFlag, ok := flags[SamlGroupsAttributeFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid groups attribute flag type")
+		}
+
+		certFileFlag, ok := flags[SamlCertFileFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid cert file flag type")
+		}
+
+		keyFileFlag, ok := flags[SamlKeyFileFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid key file flag type")
+		}
+
+		privateKeySecretFlag, ok := flags[SamlPrivateKeySecretFlag].(*cli.StringFlag)
+		if !ok {
+			return fmt.Errorf("invalid private key secret flag type")
+		}
+
+		allowIdPInitiatedFlag, ok := flags[SamlAllowIdPInitiatedFlag].(*cli.BoolFlag)
+		if !ok {
+			return fmt.Errorf("invalid allow IdP initiated flag type")
+		}
+
+		disableRequestIDValidationFlag, ok := flags[SamlDisableRequestIDValidationFlag].(*cli.BoolFlag)
+		if !ok {
+			return fmt.Errorf("invalid disable request ID validation flag type")
+		}
+
+		provider, err = authFactory.NewProvider(auth.SAML, &saml.Config{
+			IdPMetadataURL:               idpMetadataURLFlag.Value,
+			IdPMetadataFile:              idpMetadataFileFlag.Value,
+			IdPEntityID:                  idpEntityIDFlag.Value,
+			IdPSSOURL:                    idpSSOURLFlag.Value,
+			IdPSSOCertificate:            idpSSOCertificateFlag.Value,
+			NameAttribute:                nameAttributeFlag.Value,
+			EmailAttribute:               emailAttributeFlag.Value,
+			GroupsAttribute:              groupsAttributeFlag.Value,
+			CertFile:                     certFileFlag.Value,
+			KeyFile:                      keyFileFlag.Value,
+			PrivateKeySecret:             privateKeySecretFlag.Value,
+			TerralistSchemeHostAndPort:   userConfig.URL,
+			HTTPClientTimeout:            httpClientTimeout,
+			AssertionClockSkew:           assertionClockSkew,
+			RequestIDExpiration:          requestIDExpiration,
+			RequestIDCleanupInterval:     requestIDCleanupInterval,
+			MetadataRefreshInterval:      metadataRefreshInterval,
+			MetadataRefreshCheckInterval: metadataRefreshCheckInterval,
+			MaxAssertionAge:              maxAssertionAge,
+			AllowIdPInitiated:            allowIdPInitiatedFlag.Value,
+			DisableRequestIDValidation:   disableRequestIDValidationFlag.Value,
 		})
 	}
 	if err != nil {

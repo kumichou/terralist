@@ -127,7 +127,6 @@ Comma separated list of users authorized to access the settings page. If empty, 
 | cli | `--authorized-users` |
 | env | `TERRALIST_AUTHORIZED_USERS` |
 
-
 ### `rbac-policy-path`
 
 Path to the RBAC server-side policy.
@@ -173,7 +172,7 @@ The OAuth 2.0 provider.
 | Name | Value |
 | --- | --- |
 | type | select |
-| choices | `github`, `bitbucket`, `gitlab`, `oidc` |
+| choices | `github`, `bitbucket`, `gitlab`, `oidc`, `saml` |
 | required | yes |
 | default | `n/a` |
 | cli | `--oauth-provider` |
@@ -395,6 +394,269 @@ The OpenID Connect scope requested during authorization to ensure to get claims 
 | default | `openid email` |
 | cli | `--oi-scope` |
 | env | `TERRALIST_OI_SCOPE` |
+
+### `saml-display-name`
+
+The display name for SAML authentication shown in the login UI.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `SSO` |
+| cli | `--saml-display-name` |
+| env | `TERRALIST_SAML_DISPLAY_NAME` |
+
+### `saml-idp-metadata-url`
+
+The URL where the IdP metadata can be fetched from. Either this, `saml-idp-metadata-file`, or both `saml-idp-entity-id` and `saml-idp-sso-url` must be provided.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-metadata-url` |
+| env | `TERRALIST_SAML_IDP_METADATA_URL` |
+
+### `saml-idp-metadata-file`
+
+The local file path to the IdP metadata XML file. Either this, `saml-idp-metadata-url`, or both `saml-idp-entity-id` and `saml-idp-sso-url` must be provided.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-metadata-file` |
+| env | `TERRALIST_SAML_IDP_METADATA_FILE` |
+
+### `saml-idp-entity-id`
+
+The Identity Provider entity ID. Can be used instead of `saml-idp-metadata-url`/`saml-idp-metadata-file` if `saml-idp-sso-url` is also provided. This is the `entityID` attribute from the IdP metadata XML file's `EntityDescriptor` element.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-entity-id` |
+| env | `TERRALIST_SAML_IDP_ENTITY_ID` |
+
+### `saml-idp-sso-url`
+
+The Identity Provider Single Sign-On URL. Can be used instead of `saml-idp-metadata-url`/`saml-idp-metadata-file` if `saml-idp-entity-id` is also provided. This is the `Location` attribute from the IdP metadata XML file's `SingleSignOnService` element within the `IDPSSODescriptor`.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-idp-sso-url` |
+| env | `TERRALIST_SAML_IDP_SSO_URL` |
+
+### `saml-idp-sso-certificate`
+
+The Identity Provider SSO certificate (PEM format). Required if certificate cannot be extracted from IdP metadata. This is the certificate from the IdP metadata XML file's `X509Certificate` element within the `KeyDescriptor` with `use="signing"` attribute.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no (required if not in metadata) |
+| default | `n/a` |
+| cli | `--saml-idp-sso-certificate` |
+| env | `TERRALIST_SAML_IDP_SSO_CERTIFICATE` |
+
+### `saml-name-attribute`
+
+The SAML attribute name that contains the user's name. Supports Go template syntax for combining multiple attributes. Use `{{.attributeName}}` syntax to reference SAML attributes.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `displayName` |
+| cli | `--saml-name-attribute` |
+| env | `TERRALIST_SAML_NAME_ATTRIBUTE` |
+
+**Template Examples:**
+- `"displayName"` - Direct attribute lookup
+- `"{{.givenName}} {{.sn}}"` - Combine first and last name
+- `"{{.displayName}} ({{.department}})"` - Add department info
+
+**Template Behavior:**
+- If template syntax is detected (contains `{{` and `}}`), template is evaluated
+- Template variables reference SAML attribute names (e.g., `{{.givenName}}`)
+- If template results in empty string, falls back to standard attribute lookup
+- Invalid templates log errors and fall back to standard lookup
+
+### `saml-email-attribute`
+
+The SAML attribute name that contains the user's email.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `email` |
+| cli | `--saml-email-attribute` |
+| env | `TERRALIST_SAML_EMAIL_ATTRIBUTE` |
+
+### `saml-groups-attribute`
+
+The SAML attribute name that contains the user's groups. Used for RBAC group mapping.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-groups-attribute` |
+| env | `TERRALIST_SAML_GROUPS_ATTRIBUTE` |
+
+### `saml-cert-file`
+
+The path to the certificate file (PEM format) used for signing SAML requests. Optional but recommended for production.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-cert-file` |
+| env | `TERRALIST_SAML_CERT_FILE` |
+
+### `saml-key-file`
+
+The path to the private key file (PEM format) used for signing SAML requests. Optional but recommended for production.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-key-file` |
+| env | `TERRALIST_SAML_KEY_FILE` |
+
+### `saml-private-key-secret`
+
+The passphrase for the SAML private key if it is encrypted with a password. Only required if the private key file uses password-based encryption.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--saml-private-key-secret` |
+| env | `TERRALIST_SAML_PRIVATE_KEY_SECRET` |
+
+### `saml-http-client-timeout`
+
+The timeout for HTTP requests to fetch IdP metadata from URLs. This affects how long Terralist will wait for metadata downloads before timing out.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `30s` |
+| cli | `--saml-http-client-timeout` |
+| env | `TERRALIST_SAML_HTTP_CLIENT_TIMEOUT` |
+
+### `saml-assertion-clock-skew`
+
+The allowed time difference between Service Provider (SP) and Identity Provider (IdP) clocks. SAML 2.0 specification recommends allowing some clock skew tolerance (typically 5 minutes) to account for synchronization differences between systems.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `5m` |
+| cli | `--saml-assertion-clock-skew` |
+| env | `TERRALIST_SAML_ASSERTION_CLOCK_SKEW` |
+
+### `saml-request-id-expiration`
+
+How long SAML AuthnRequest IDs are kept in memory to prevent replay attacks. Request IDs are used to correlate SAML responses with their originating requests. Shorter values improve security but may cause issues with slow IdP responses.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `1h` |
+| cli | `--saml-request-id-expiration` |
+| env | `TERRALIST_SAML_REQUEST_ID_EXPIRATION` |
+
+### `saml-request-id-cleanup-interval`
+
+How often expired SAML request IDs are cleaned up from memory. This should be shorter than the expiration time for memory efficiency.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `15m` |
+| cli | `--saml-request-id-cleanup-interval` |
+| env | `TERRALIST_SAML_REQUEST_ID_CLEANUP_INTERVAL` |
+
+### `saml-metadata-refresh-interval`
+
+The interval for refreshing IdP metadata when loaded from URLs. This ensures certificate updates and configuration changes are picked up automatically. Only applies when using `saml-idp-metadata-url`.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `24h` |
+| cli | `--saml-metadata-refresh-interval` |
+| env | `TERRALIST_SAML_METADATA_REFRESH_INTERVAL` |
+
+### `saml-metadata-refresh-check-interval`
+
+How often to check if IdP metadata needs to be refreshed. This allows for more frequent checking than the actual refresh interval to catch expiration quickly.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `1h` |
+| cli | `--saml-metadata-refresh-check-interval` |
+| env | `TERRALIST_SAML_METADATA_REFRESH_CHECK_INTERVAL` |
+
+### `saml-max-assertion-age`
+
+The maximum age of SAML assertions from their IssueInstant timestamp. This provides additional defense against replay attacks by rejecting assertions that are too old. Should be reasonable for typical authentication flows.
+
+| Name | Value |
+|------|-------|
+| type | duration |
+| required | no |
+| default | `1h` |
+| cli | `--saml-max-assertion-age` |
+| env | `TERRALIST_SAML_MAX_ASSERTION_AGE` |
+
+### `saml-allow-idp-initiated`
+
+Whether to allow IdP-initiated SSO. When disabled (recommended for security), only SP-initiated SSO flows are accepted. IdP-initiated SSO can be a security risk as it allows unsolicited login attempts.
+
+| Name | Value |
+|------|-------|
+| type | boolean |
+| required | no |
+| default | `false` |
+| cli | `--saml-allow-idp-initiated` |
+| env | `TERRALIST_SAML_ALLOW_IDP_INITIATED` |
+
+### `saml-disable-request-id-validation`
+
+Whether to disable SAML request ID validation. Request ID validation prevents replay attacks by ensuring SAML responses correspond to previously issued requests. However, this requires shared state across application instances. Disable this in Kubernetes environments with multiple pods where requests may be routed to different instances.
+
+| Name | Value |
+|------|-------|
+| type | boolean |
+| required | no |
+| default | `false` |
+| cli | `--saml-disable-request-id-validation` |
+| env | `TERRALIST_SAML_DISABLE_REQUEST_ID_VALIDATION` |
 
 ### `database-backend`
 
