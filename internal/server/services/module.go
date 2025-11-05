@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"terralist/internal/server/models/module"
 	"terralist/internal/server/repositories"
@@ -78,7 +79,10 @@ func (s *DefaultModuleService) GetVersion(namespace, name, provider, version str
 			return dto, nil
 		}
 
-		resp, err := http.Get(url)
+		client := &http.Client{
+			Timeout: 30 * time.Second,
+		}
+		resp, err := client.Get(url)
 		if err != nil {
 			log.Warn().
 				Str("moduleSlug", fmt.Sprintf("%s/%s/%s/%s", namespace, name, provider, version)).

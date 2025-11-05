@@ -1,6 +1,6 @@
 # Local Development
 
-Terralist is built in go, which makes it easy to distribute and especially, to run locally, but unfortunately, Terraform/OpenTofu expects the registry to run over HTTPS. If you are developing Terralist and don't plan to use it via a Terraform/OpenTofu interaction, you don't need to follow this document, but otherwise, let's start.
+Terralist is built in Golang, which makes it easy to distribute and especially, to run locally, but unfortunately, Terraform/OpenTofu expects the registry to run over HTTPS. If you are developing Terralist and don't plan to use it via a Terraform/OpenTofu interaction, you don't need to follow this document, but otherwise, let's start.
 
 There are multiple options to expose Terralist over HTTPS:
 

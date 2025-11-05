@@ -17,7 +17,7 @@ type User struct {
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"User{Name: %v, Email: %v, Authority: %v, AuthorityID: %v, Groups: %v}",
+		"User {Name: %v, Email: %v, Authority: %v, AuthorityID: %v, Groups: %v}",
 		u.Name,
 		u.Email,
 		u.Authority,
