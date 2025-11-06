@@ -7,14 +7,15 @@ import (
 	"slices"
 	"strings"
 	"terralist/pkg/auth/bitbucket"
+	"terralist/pkg/auth/github"
 	"terralist/pkg/auth/gitlab"
+	"terralist/pkg/auth/google"
 	"terralist/pkg/auth/oidc"
 	"terralist/pkg/auth/saml"
 
 	"terralist/internal/server"
 	"terralist/pkg/auth"
 	authFactory "terralist/pkg/auth/factory"
-	"terralist/pkg/auth/github"
 	"terralist/pkg/cli"
 	"terralist/pkg/database"
 	dbFactory "terralist/pkg/database/factory"
@@ -284,6 +285,12 @@ func (s *Command) run() error {
 			CertFile:                   flags[SamlCertFileFlag].(*cli.StringFlag).Value,
 			KeyFile:                    flags[SamlKeyFileFlag].(*cli.StringFlag).Value,
 			TerralistSchemeHostAndPort: userConfig.URL,
+		})
+	case "google":
+		provider, err = authFactory.NewProvider(auth.GOOGLE, &google.Config{ //nolint:forcetypeassert
+			ClientID:     flags[GoogleClientIDFlag].(*cli.StringFlag).Value,
+			ClientSecret: flags[GoogleClientSecretFlag].(*cli.StringFlag).Value,
+			Domain:       flags[GoogleDomainFlag].(*cli.StringFlag).Value,
 		})
 	}
 	if err != nil {

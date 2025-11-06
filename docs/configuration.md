@@ -173,7 +173,7 @@ The OAuth 2.0 provider.
 | Name | Value |
 | --- | --- |
 | type | select |
-| choices | `github`, `bitbucket`, `gitlab`, `oidc`, `saml` |
+| choices | `github`, `bitbucket`, `gitlab`, `oidc`, `saml`, `google` |
 | required | yes |
 | default | `n/a` |
 | cli | `--oauth-provider` |
@@ -395,6 +395,50 @@ The OpenID Connect scope requested during authorization to ensure to get claims 
 | default | `openid email` |
 | cli | `--oi-scope` |
 | env | `TERRALIST_OI_SCOPE` |
+
+### `google-client-id`
+
+The Google OAuth Application client ID.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--google-client-id` |
+| env | `TERRALIST_GOOGLE_CLIENT_ID` |
+
+### `google-client-secret`
+
+The Google OAuth Application client secret.
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--google-client-secret` |
+| env | `TERRALIST_GOOGLE_CLIENT_SECRET` |
+
+### `google-domain`
+
+The Google Workspace domain to restrict authentication to (optional). If specified, only users from this domain will be allowed to authenticate. When a domain is configured, Google Workspace groups will be retrieved and used for RBAC authorization.
+
+**Note**: When using domain restriction, the Google OAuth application must be configured with the following additional scope:
+- `https://www.googleapis.com/auth/admin.directory.group.readonly`
+
+This scope requires:
+- Admin consent during OAuth setup
+- Domain-wide delegation enabled for the service account
+- The authenticating user must have appropriate Google Workspace admin permissions
+
+| Name | Value |
+| --- | --- |
+| type | string |
+| required | no |
+| default | `n/a` |
+| cli | `--google-domain` |
+| env | `TERRALIST_GOOGLE_DOMAIN` |
 
 ### `saml-idp-metadata-url`
 
@@ -1011,6 +1055,12 @@ gh-organization: "my-org"
 # you must use the slug version of the team
 gh-teams: "team-a,team-b"
 token-signing-secret: "supersecretstring"
+
+# For Google OAuth:
+# oauth-provider: "google"
+# google-client-id: "${GOOGLE_OAUTH_CLIENT_ID}"
+# google-client-secret: "${GOOGLE_OAUTH_CLIENT_SECRET}"
+# google-domain: "example.com"  # Optional: restrict to Google Workspace domain and enable group-based RBAC
 
 database-backend: "sqlite"
 sqlite-path: "terralist.db"

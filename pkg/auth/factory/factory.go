@@ -7,6 +7,7 @@ import (
 	"terralist/pkg/auth/bitbucket"
 	"terralist/pkg/auth/github"
 	"terralist/pkg/auth/gitlab"
+	"terralist/pkg/auth/google"
 	"terralist/pkg/auth/oidc"
 	"terralist/pkg/auth/saml"
 )
@@ -31,6 +32,8 @@ func NewProvider(backend auth.Backend, config auth.Configurator) (auth.Provider,
 		creator = &oidc.Creator{}
 	case auth.SAML:
 		creator = &saml.Creator{}
+	case auth.GOOGLE:
+		creator = &google.Creator{}
 	default:
 		return nil, fmt.Errorf("unrecognized backend type")
 	}

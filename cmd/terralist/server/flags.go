@@ -58,6 +58,10 @@ const (
 	OidcUserInfoUrlFlag  = "oi-userinfo-url"
 	OidcScopeFlag        = "oi-scope"
 
+	GoogleClientIDFlag     = "google-client-id"
+	GoogleClientSecretFlag = "google-client-secret"
+	GoogleDomainFlag       = "google-domain"
+
 	SamlIdPMetadataURLFlag  = "saml-idp-metadata-url"
 	SamlIdPMetadataFileFlag = "saml-idp-metadata-file"
 	SamlSPEntityIDFlag      = "saml-sp-entity-id"
@@ -193,10 +197,9 @@ var flags = map[string]cli.Flag{
 	MySQLDatabaseFlag: &cli.StringFlag{
 		Description: "The schema name on which application data should be stored.",
 	},
-
 	OAuthProviderFlag: &cli.StringFlag{
 		Description: "The OAuth 2.0 provider.",
-		Choices:     []string{"github", "bitbucket", "gitlab", "oidc", "saml"},
+		Choices:     []string{"bitbucket", "github", "gitlab", "google", "oidc", "saml"},
 		Required:    true,
 	},
 	GitHubClientIDFlag: &cli.StringFlag{
@@ -256,6 +259,16 @@ var flags = map[string]cli.Flag{
 	OidcScopeFlag: &cli.StringFlag{
 		Description:  "The scopes requested during OIDC authorization.",
 		DefaultValue: "openid email",
+	},
+
+	GoogleClientIDFlag: &cli.StringFlag{
+		Description: "The Google OAuth Application client ID.",
+	},
+	GoogleClientSecretFlag: &cli.StringFlag{
+		Description: "The Google OAuth Application client secret.",
+	},
+	GoogleDomainFlag: &cli.StringFlag{
+		Description: "The Google Workspace domain to restrict authentication to (optional).",
 	},
 
 	SamlIdPMetadataURLFlag: &cli.StringFlag{

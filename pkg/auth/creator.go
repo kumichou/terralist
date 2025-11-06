@@ -4,6 +4,7 @@ const (
 	GITHUB = iota
 	BITBUCKET
 	GITLAB
+	GOOGLE
 	OIDC
 	SAML
 )
