@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 import prettierRecommended from 'eslint-plugin-prettier/recommended'
 import tsparser from '@typescript-eslint/parser'
 import svelteParser from 'svelte-eslint-parser'
-import stylisticTs from '@stylistic/eslint-plugin-ts'
+import stylistic from '@stylistic/eslint-plugin'
 import svelte from 'eslint-plugin-svelte'
 import globals from 'globals'
 
@@ -55,7 +55,7 @@ export default defineConfig([
       }
     },
     plugins: {
-      '@stylistic/ts': stylisticTs,
+      '@stylistic': stylistic,
     },
     rules: {
       camelcase: 'off',
@@ -103,8 +103,8 @@ export default defineConfig([
       '@typescript-eslint/restrict-plus-operands': 'error',
       '@typescript-eslint/space-before-function-paren': 'off',
       '@typescript-eslint/unbound-method': 'error',
-      '@stylistic/ts/type-annotation-spacing': 'error',
-      '@stylistic/ts/func-call-spacing': ['error', 'never'],
+      '@stylistic/type-annotation-spacing': 'error',
+      '@stylistic/func-call-spacing': ['error', 'never'],
     }
   }
 ]);
