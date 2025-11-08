@@ -52,6 +52,7 @@ type Provider struct {
 	MetadataRefreshCheckInterval time.Duration
 	MaxAssertionAge              time.Duration
 	AllowIdPInitiated            bool
+	DisableRequestIDValidation   bool
 
 	// Internal state: SAML components
 	idpMetadata     *saml.EntityDescriptor
@@ -323,7 +324,7 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 	// Note: InResponseTo is optional in SAML 2.0 but should always be present for SP-initiated flows.
 	// If missing, we skip validation (less secure but allows compatibility with some IdPs).
 	// In production, consider requiring InResponseTo for all responses.
-	if requestID != "" {
+	if !p.DisableRequestIDValidation && requestID != "" {
 		if !p.requestTracker.ValidateAndConsume(requestID, p.RequestIDExpiration) {
 			log.Warn().
 				Str("request_id", requestID).
@@ -331,10 +332,14 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 				Msg("SAML authentication failed: invalid or replayed request ID")
 			return fmt.Errorf("authentication failed: invalid or expired response")
 		}
-	} else {
+	} else if !p.DisableRequestIDValidation && requestID == "" {
 		log.Warn().
 			Str("source", "request_id_missing").
 			Msg("SAML authentication warning: InResponseTo missing from SAML response")
+	} else if p.DisableRequestIDValidation {
+		log.Debug().
+			Str("request_id", requestID).
+			Msg("SAML request ID validation disabled")
 	}
 
 	// Build list of valid request IDs for library validation

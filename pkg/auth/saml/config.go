@@ -90,6 +90,11 @@ type Config struct {
 	// AllowIdPInitiated specifies whether to allow IdP-initiated SSO.
 	// Security best practice is to disable this. Default: false.
 	AllowIdPInitiated bool
+
+	// DisableRequestIDValidation disables SAML request ID validation.
+	// This can be useful in Kubernetes environments where requests may be
+	// routed to different pods. Default: false.
+	DisableRequestIDValidation bool
 }
 
 func (c *Config) SetDefaults() {
