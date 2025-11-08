@@ -305,6 +305,11 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 		return fmt.Errorf("%s", sanitizedMsg)
 	}
 
+	// Debug log the raw SAML response for troubleshooting
+	log.Debug().
+		Str("raw_saml_response", string(samlResponseXML)).
+		Msg("Received SAML response from IdP")
+
 	// First, parse the response to extract the request ID (InResponseTo)
 	// We need to do a preliminary parse to get the InResponseTo value
 	var response saml.Response
@@ -395,6 +400,12 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 		}
 	}
 
+	// Debug log all extracted attributes
+	log.Debug().
+		Interface("saml_attributes", attributes).
+		Int("attribute_count", len(attributes)).
+		Msg("Extracted SAML attributes from assertion")
+
 	// Map attributes to user struct
 	if err := p.mapAttributesToUser(attributes, user); err != nil {
 		log.Error().
@@ -408,6 +419,12 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 		// Attribute errors are safe to expose (e.g., "name attribute not found")
 		return err
 	}
+
+	// Debug log the final user groups
+	log.Debug().
+		Strs("user_groups", user.Groups).
+		Int("groups_count", len(user.Groups)).
+		Msg("Final user groups after SAML authentication")
 
 	// Log successful authentication
 	var notBefore, notOnOrAfter time.Time

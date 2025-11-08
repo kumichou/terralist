@@ -376,7 +376,21 @@ Enable detailed SAML logging by setting log level to debug:
 terralist server --log-level debug
 ```
 
-Check SAML response details in the logs. For security, detailed SAML response data is logged at debug level.
+When debug logging is enabled, Terralist will log:
+
+- **Raw SAML Response XML**: Complete SAML response from the IdP for inspection
+- **Extracted Attributes**: All attributes found in the SAML assertion with their values
+- **User Groups**: Final groups assigned to the user after attribute mapping
+
+!!! warning "Security Note"
+    Debug logs contain sensitive SAML response data. Only enable debug logging temporarily for troubleshooting and disable it in production environments.
+
+Example debug output:
+```
+{"level":"debug","raw_saml_response":"<samlp:Response...","message":"Received SAML response from IdP"}
+{"level":"debug","saml_attributes":{"email":["user@example.com"],"groups":["developers","admins"]},"attribute_count":2,"message":"Extracted SAML attributes from assertion"}
+{"level":"debug","user_groups":["developers","admins"],"groups_count":2,"message":"Final user groups after SAML authentication"}
+```
 
 ### Testing SAML Configuration
 
