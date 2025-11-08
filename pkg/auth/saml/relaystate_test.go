@@ -28,7 +28,7 @@ func TestValidateRelayState(t *testing.T) {
 		},
 		{
 			name:       "RelayState exceeds max size",
-			relayState: base64.StdEncoding.EncodeToString(make([]byte, 100)), // 100 bytes encoded will be > 80 bytes
+			relayState: base64.StdEncoding.EncodeToString(make([]byte, 600)), // 600 bytes encoded will be > 512 bytes
 			wantErr:    true,
 			errMsg:     "relayState exceeds maximum size",
 		},
@@ -40,12 +40,12 @@ func TestValidateRelayState(t *testing.T) {
 		},
 		{
 			name:       "RelayState at max size boundary",
-			relayState: base64.StdEncoding.EncodeToString(make([]byte, 60)), // ~80 bytes when base64 encoded
+			relayState: base64.StdEncoding.EncodeToString(make([]byte, 384)), // 512 bytes when base64 encoded
 			wantErr:    false,
 		},
 		{
 			name:       "RelayState just over max size",
-			relayState: base64.StdEncoding.EncodeToString(make([]byte, 61)), // ~84 bytes when base64 encoded
+			relayState: base64.StdEncoding.EncodeToString(make([]byte, 385)), // ~514 bytes when base64 encoded
 			wantErr:    true,
 			errMsg:     "relayState exceeds maximum size",
 		},
@@ -73,18 +73,18 @@ func TestValidateRelayState(t *testing.T) {
 
 // TestValidateRelayState_SizeBoundary tests the exact size boundary.
 func TestValidateRelayState_SizeBoundary(t *testing.T) {
-	// Create a RelayState that is exactly 80 bytes
-	relayState80 := base64.StdEncoding.EncodeToString(make([]byte, 60)) // 60 bytes -> ~80 bytes base64
-	if len(relayState80) <= 80 {
-		err := ValidateRelayState(relayState80)
-		assert.NoError(t, err, "RelayState at or below 80 bytes should be valid")
+	// Create a RelayState that is exactly 512 bytes
+	relayState512 := base64.StdEncoding.EncodeToString(make([]byte, 384)) // 384 bytes -> 512 bytes base64
+	if len(relayState512) <= 512 {
+		err := ValidateRelayState(relayState512)
+		assert.NoError(t, err, "RelayState at or below 512 bytes should be valid")
 	}
 
-	// Create a RelayState that exceeds 80 bytes
-	relayState81 := base64.StdEncoding.EncodeToString(make([]byte, 61)) // 61 bytes -> ~84 bytes base64
-	if len(relayState81) > 80 {
-		err := ValidateRelayState(relayState81)
-		assert.Error(t, err, "RelayState over 80 bytes should be rejected")
+	// Create a RelayState that exceeds 512 bytes
+	relayState513 := base64.StdEncoding.EncodeToString(make([]byte, 385)) // 385 bytes -> ~514 bytes base64
+	if len(relayState513) > 512 {
+		err := ValidateRelayState(relayState513)
+		assert.Error(t, err, "RelayState over 512 bytes should be rejected")
 		assert.Contains(t, err.Error(), "exceeds maximum size")
 	}
 }

@@ -68,9 +68,10 @@ type Provider struct {
 
 const (
 	// relayStateMaxSize is the maximum size for RelayState in bytes
-	// SAML 2.0 specification recommends max 80 bytes for RelayState
-	// This helps prevent CSRF attacks and ensures compatibility with IdPs.
-	relayStateMaxSize = 80
+	// SAML 2.0 specification recommends max 80 bytes for RelayState, but
+	// many implementations including Google Workspace support larger values.
+	// We use 512 bytes to accommodate OAuth payloads while preventing abuse.
+	relayStateMaxSize = 512
 )
 
 // newHTTPClient creates an HTTP client with configurable timeout.
