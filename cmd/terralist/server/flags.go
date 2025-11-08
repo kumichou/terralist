@@ -78,6 +78,7 @@ const (
 	SamlMetadataRefreshCheckIntervalFlag = "saml-metadata-refresh-check-interval"
 	SamlMaxAssertionAgeFlag              = "saml-max-assertion-age"
 	SamlAllowIdPInitiatedFlag            = "saml-allow-idp-initiated"
+	SamlDisableRequestIDValidationFlag   = "saml-disable-request-id-validation"
 
 	TokenSigningSecretFlag = "token-signing-secret"
 
@@ -338,6 +339,10 @@ var flags = map[string]cli.Flag{
 	},
 	SamlAllowIdPInitiatedFlag: &cli.BoolFlag{
 		Description:  "Whether to allow IdP-initiated SSO (security best practice is to disable).",
+		DefaultValue: false,
+	},
+	SamlDisableRequestIDValidationFlag: &cli.BoolFlag{
+		Description:  "Disable SAML request ID validation (useful in Kubernetes environments with multiple pods).",
 		DefaultValue: false,
 	},
 

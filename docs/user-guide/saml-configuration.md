@@ -245,6 +245,48 @@ Configure these attribute mappings:
 
 4. **Certificate issues**: Ensure Google's IdP certificate is properly loaded. You can extract it from the metadata file or use the direct certificate configuration option.
 
+## Kubernetes Deployment
+
+When deploying Terralist with SAML authentication in Kubernetes environments, consider these additional configuration requirements:
+
+### Request ID Validation
+
+In multi-pod Kubernetes deployments, SAML request ID validation may fail because the in-memory request tracker doesn't persist across pods. To resolve this, disable request ID validation:
+
+```bash
+terralist server \
+  --oauth-provider saml \
+  --saml-idp-metadata-file "/path/to/metadata.xml" \
+  --saml-disable-request-id-validation
+```
+
+!!! warning "Security Trade-off"
+    Disabling request ID validation removes protection against SAML replay attacks. Ensure other security measures are in place, such as:
+    - Short assertion validity periods (`--saml-max-assertion-age`)
+    - Proper TLS/HTTPS configuration
+    - Regular certificate rotation
+
+### Load Balancer Configuration
+
+Ensure your load balancer or ingress controller:
+- **HTTPS Termination**: Properly terminates TLS if Terralist isn't handling certificates directly
+- **Session Affinity**: Consider sticky sessions for SAML flows (optional, not required with request ID validation disabled)
+- **Header Forwarding**: Forward original client IPs for security logging
+
+### Pod Resources
+
+SAML processing can be CPU-intensive due to XML parsing and cryptographic operations. Consider:
+- **CPU Requests**: At least 100m CPU per pod
+- **Memory Limits**: At least 256Mi per pod
+- **Readiness Probes**: Include SAML metadata endpoint checks
+
+### Secrets Management
+
+Store SAML certificates and secrets securely:
+- Use Kubernetes secrets for certificates and private keys
+- Mount secrets as files rather than environment variables for certificates
+- Rotate secrets regularly according to your security policy
+
 ## Advanced Configuration
 
 ### Security Settings
@@ -320,6 +362,11 @@ The `saml-groups-attribute` configuration determines which SAML attribute contai
 4. **"Clock skew errors"**
    - Increase `saml-assertion-clock-skew` value
    - Ensure system clocks are synchronized
+
+5. **"SAML authentication failed: invalid or replayed request ID"** (Kubernetes)
+   - This occurs in multi-pod Kubernetes deployments where request state isn't shared
+   - Solution: Set `--saml-disable-request-id-validation` or `TERRALIST_SAML_DISABLE_REQUEST_ID_VALIDATION=true`
+   - Note: This disables replay attack protection but allows SAML to work in distributed environments
 
 ### Debugging
 

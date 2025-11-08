@@ -378,6 +378,11 @@ func (s *Command) run() error {
 			return fmt.Errorf("invalid allow IdP initiated flag type")
 		}
 
+		disableRequestIDValidationFlag, ok := flags[SamlDisableRequestIDValidationFlag].(*cli.BoolFlag)
+		if !ok {
+			return fmt.Errorf("invalid disable request ID validation flag type")
+		}
+
 		provider, err = authFactory.NewProvider(auth.SAML, &saml.Config{
 			IdPMetadataURL:               idpMetadataURLFlag.Value,
 			IdPMetadataFile:              idpMetadataFileFlag.Value,
@@ -399,6 +404,7 @@ func (s *Command) run() error {
 			MetadataRefreshCheckInterval: metadataRefreshCheckInterval,
 			MaxAssertionAge:              maxAssertionAge,
 			AllowIdPInitiated:            allowIdPInitiatedFlag.Value,
+			DisableRequestIDValidation:   disableRequestIDValidationFlag.Value,
 		})
 	}
 	if err != nil {

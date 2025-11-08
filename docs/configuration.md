@@ -635,6 +635,18 @@ Whether to allow IdP-initiated SSO. When disabled (recommended for security), on
 | cli | `--saml-allow-idp-initiated` |
 | env | `TERRALIST_SAML_ALLOW_IDP_INITIATED` |
 
+### `saml-disable-request-id-validation`
+
+Whether to disable SAML request ID validation. Request ID validation prevents replay attacks by ensuring SAML responses correspond to previously issued requests. However, this requires shared state across application instances. Disable this in Kubernetes environments with multiple pods where requests may be routed to different instances.
+
+| Name | Value |
+|------|-------|
+| type | boolean |
+| required | no |
+| default | `false` |
+| cli | `--saml-disable-request-id-validation` |
+| env | `TERRALIST_SAML_DISABLE_REQUEST_ID_VALIDATION` |
+
 ### `database-backend`
 
 The database backend.
