@@ -136,6 +136,29 @@ terralist server \
   --saml-email-attribute "email"
 ```
 
+### Attribute Templating
+
+You can combine multiple SAML attributes into a single field using Go template syntax:
+
+```bash
+terralist server \
+  --saml-name-attribute "{{.givenName}} {{.sn}}" \
+  --saml-email-attribute "email"
+```
+
+This example combines `givenName` and `sn` (surname) attributes into a full name like "John Doe".
+
+**Template Syntax:**
+- Use `{{.attributeName}}` to reference SAML attributes
+- Templates support all standard Go template functions
+- If a referenced attribute doesn't exist, the template falls back to standard attribute lookup
+- Invalid templates will log an error and fall back to standard lookup
+
+**Examples:**
+- `"{{.givenName}} {{.sn}}"` - Combine first and last name
+- `"{{.displayName}} ({{.department}})"` - Add department info
+- `"Dr. {{.givenName}} {{.sn}}"` - Add title prefix
+
 ### Group-based Authorization
 For RBAC with groups, configure the groups attribute:
 ```bash
@@ -378,7 +401,6 @@ terralist server --log-level debug
 
 When debug logging is enabled, Terralist will log:
 
-- **Raw SAML Response XML**: Complete SAML response from the IdP for inspection
 - **Extracted Attributes**: All attributes found in the SAML assertion with their values
 - **User Groups**: Final groups assigned to the user after attribute mapping
 
@@ -387,7 +409,6 @@ When debug logging is enabled, Terralist will log:
 
 Example debug output:
 ```
-{"level":"debug","raw_saml_response":"<samlp:Response...","message":"Received SAML response from IdP"}
 {"level":"debug","saml_attributes":{"email":["user@example.com"],"groups":["developers","admins"]},"attribute_count":2,"message":"Extracted SAML attributes from assertion"}
 {"level":"debug","user_groups":["developers","admins"],"groups_count":2,"message":"Final user groups after SAML authentication"}
 ```

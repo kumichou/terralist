@@ -295,6 +295,68 @@ func TestProvider_mapAttributesToUser(t *testing.T) {
 				Email: "first@example.com",
 			},
 		},
+		{
+			name: "name attribute templating - combine first and last name",
+			provider: &Provider{
+				NameAttribute:  "{{.givenName}} {{.sn}}",
+				EmailAttribute: "email",
+			},
+			attributes: map[string][]string{
+				"givenName": {"John"},
+				"sn":        {"Doe"},
+				"email":     {"john.doe@example.com"},
+			},
+			expectedErr: false,
+			expectedUser: &auth.User{
+				Name:  "John Doe",
+				Email: "john.doe@example.com",
+			},
+		},
+		{
+			name: "name attribute templating - with fallback",
+			provider: &Provider{
+				NameAttribute:  "{{.displayName}}",
+				EmailAttribute: "email",
+			},
+			attributes: map[string][]string{
+				"givenName":   {"John"},
+				"sn":          {"Doe"},
+				"displayName": {"John Doe"},
+				"email":       {"john.doe@example.com"},
+			},
+			expectedErr: false,
+			expectedUser: &auth.User{
+				Name:  "John Doe",
+				Email: "john.doe@example.com",
+			},
+		},
+		{
+			name: "name attribute templating - empty result falls back",
+			provider: &Provider{
+				NameAttribute:  "{{.nonexistent}}",
+				EmailAttribute: "email",
+			},
+			attributes: map[string][]string{
+				"name":  {"Fallback Name"},
+				"email": {"test@example.com"},
+			},
+			expectedErr: false,
+			expectedUser: &auth.User{
+				Name:  "Fallback Name",
+				Email: "test@example.com",
+			},
+		},
+		{
+			name: "name attribute templating - invalid template",
+			provider: &Provider{
+				NameAttribute:  "{{invalid syntax",
+				EmailAttribute: "email",
+			},
+			attributes: map[string][]string{
+				"email": {"test@example.com"},
+			},
+			expectedErr: true,
+		},
 	}
 
 	for _, tt := range tests {
