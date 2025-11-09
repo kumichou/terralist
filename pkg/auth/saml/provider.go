@@ -1,6 +1,7 @@
 package saml
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"terralist/pkg/auth"
@@ -304,11 +306,6 @@ func (p *Provider) GetUserDetails(samlResponse string, user *auth.User) error {
 		sanitizedMsg, _ := SanitizeError(err)
 		return fmt.Errorf("%s", sanitizedMsg)
 	}
-
-	// Debug log the raw SAML response for troubleshooting
-	log.Debug().
-		Str("raw_saml_response", string(samlResponseXML)).
-		Msg("Received SAML response from IdP")
 
 	// First, parse the response to extract the request ID (InResponseTo)
 	// We need to do a preliminary parse to get the InResponseTo value
@@ -1025,6 +1022,7 @@ func validateRelayState(relayState string) error {
 // getSSOURL returns the SSO URL from the IdP metadata.
 func (p *Provider) getSSOURL() string {
 	metadata := p.getIdPMetadata()
+
 	if metadata == nil {
 		return ""
 	}
@@ -1071,24 +1069,66 @@ func (p *Provider) GetSPMetadata() ([]byte, error) {
 	return xmlBytes, nil
 }
 
-// mapAttributesToUser maps SAML attributes to the user struct.
-func (p *Provider) mapAttributesToUser(attributes map[string][]string, user *auth.User) error {
-	// Extract name
-	if nameAttr, ok := attributes[p.NameAttribute]; ok && len(nameAttr) > 0 {
-		user.Name = nameAttr[0]
-	} else {
-		// Try common SAML attribute names
-		for _, attrName := range []string{"displayName", "name", "givenName", "cn", "uid"} {
-			if nameAttr, ok := attributes[attrName]; ok && len(nameAttr) > 0 {
-				user.Name = nameAttr[0]
-				break
+// resolveNameAttribute resolves the name attribute, supporting templating.
+// Templates use {{attributeName}} syntax to reference SAML attributes.
+// If no template is detected, falls back to direct attribute lookup.
+func (p *Provider) resolveNameAttribute(attributes map[string][]string) (string, error) {
+	nameTemplate := p.NameAttribute
+
+	// Check if this looks like a template (contains {{}})
+	if strings.Contains(nameTemplate, "{{") && strings.Contains(nameTemplate, "}}") {
+		// Parse and execute template
+		tmpl, err := template.New("name").Parse(nameTemplate)
+		if err != nil {
+			return "", fmt.Errorf("invalid name attribute template: %w", err)
+		}
+
+		// Create template data - Go templates expect a struct/map, not individual variables
+		// We'll create a map where attribute names are accessible as .AttributeName
+		templateData := make(map[string]string)
+		for key, values := range attributes {
+			if len(values) > 0 {
+				templateData[key] = values[0] // Use first value for templates
 			}
+		}
+
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, templateData); err != nil {
+			return "", fmt.Errorf("failed to execute name attribute template: %w", err)
+		}
+
+		result := strings.TrimSpace(buf.String())
+		// Check if template resulted in "<no value>" (missing key) or empty
+		if result != "" && result != "<no value>" {
+			return result, nil
+		}
+		// If template resulted in empty string, fall through to fallback logic
+	} else {
+		// Direct attribute lookup
+		if nameAttr, ok := attributes[nameTemplate]; ok && len(nameAttr) > 0 {
+			return nameAttr[0], nil
 		}
 	}
 
-	if user.Name == "" {
-		return fmt.Errorf("name attribute not found in SAML response")
+	// Fallback: Try common SAML attribute names
+	for _, attrName := range []string{"displayName", "name", "givenName", "cn", "uid"} {
+		if nameAttr, ok := attributes[attrName]; ok && len(nameAttr) > 0 {
+			return nameAttr[0], nil
+		}
 	}
+
+	return "", fmt.Errorf("name attribute not found in SAML response")
+}
+
+// mapAttributesToUser maps SAML attributes to the user struct.
+func (p *Provider) mapAttributesToUser(attributes map[string][]string, user *auth.User) error {
+	// Extract name - support templating
+	userName, err := p.resolveNameAttribute(attributes)
+	if err != nil {
+		return fmt.Errorf("failed to resolve name attribute: %w", err)
+	}
+
+	user.Name = userName
 
 	// Extract email
 	if emailAttr, ok := attributes[p.EmailAttribute]; ok && len(emailAttr) > 0 {
