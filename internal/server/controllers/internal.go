@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"net/http"
+	"terralist/internal/server/handlers"
 	"terralist/pkg/api"
+	"terralist/pkg/auth"
+	"terralist/pkg/rbac"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +26,7 @@ type DefaultInternalController struct {
 	SessionDetailsRoute   string
 	ClearSessionRoute     string
 	AuthorizedUsers       string
+	Authorization         *handlers.Authorization
 }
 
 func (c *DefaultInternalController) Paths() []string {
@@ -46,6 +50,25 @@ func (c *DefaultInternalController) Subscribe(apis ...*gin.RouterGroup) {
 					"session_endpoint":       c.SessionDetailsRoute,
 					"clear_session_endpoint": c.ClearSessionRoute,
 				},
+			})
+		},
+	)
+
+	api.GET(
+		"/permissions/settings",
+		func(ctx *gin.Context) {
+			user, err := handlers.GetFromContext[auth.User](ctx, "user")
+			if err != nil {
+				// If user is not authenticated, check if anonymous access is allowed
+				user = &auth.User{
+					Name: rbac.SubjectAnonymous,
+				}
+			}
+
+			canAccess := c.Authorization.CanPerform(*user, rbac.ResourceSettings, rbac.ActionGet, "*")
+
+			ctx.JSON(http.StatusOK, gin.H{
+				"can_access_settings": canAccess,
 			})
 		},
 	)

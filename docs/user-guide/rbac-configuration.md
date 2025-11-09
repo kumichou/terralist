@@ -50,7 +50,7 @@ Below is a table that defines claims meaning for each OAuth provider.
 Syntax: `p, <role/username/useremail/group>, <resource>, <action>, <object>, <effect>`
 
 - `<role/username/useremail/group>`: The entity to whom the policy will be assigned
-- `<resource>`<sup>*</sup>: The type of resource on which the action is performed. Can be one of: `modules`, `providers`, `authorities`. Supports glob matching (e.g. )
+- `<resource>`<sup>*</sup>: The type of resource on which the action is performed. Can be one of: `modules`, `providers`, `authorities`, `settings`. Supports glob matching (e.g. )
 - `<action>`<sup>*</sup>: The operation that is being performed on the resource. Can be one of: `get`, `create`, `update`, `delete`. Supports glob matching.
 - `<object>`<sup>*</sup>: The object identifier representing the resource on which the action is performed. Supports glob matching. Depending on the resource, the object's format will vary. 
 - `<effect>`: Whether this policy should grant or restrict the operation on the target object. One of `allow` or `deny`.
@@ -64,5 +64,84 @@ Below is a table that defines the correct object syntax for each resource group.
 | `authorities`  | `<authority-name>`                               |
 | `modules`      | `<authority-name>/<module-name>/<provider-name>` |
 | `providers`    | `<authority-name>/<provider-name>`               |
+| `settings`     | `*`                                              |
 
- For example, an object c
+## Settings Access Control
+
+The `settings` resource controls access to the Terralist Settings UI page. This includes viewing user information and managing authorities.
+
+**Example policies:**
+
+```
+# Allow admin users to access settings
+p, role:admin, settings, get, *, allow
+
+# Allow specific users to access settings
+p, alice@example.com, settings, get, *, allow
+p, bob, settings, get, *, allow
+
+# Allow a specific group to access settings
+g, devops-team, settings-managers
+p, settings-managers, settings, get, *, allow
+```
+
+**Note:** If no RBAC policies are defined for the `settings` resource, the system falls back to the legacy `TERRALIST_AUTHORIZED_USERS` configuration for backward compatibility.
+
+## Case Sensitivity in RBAC Matching
+
+**Important:** All RBAC string matching is **case-sensitive**. This affects usernames, email addresses, group names, resource names, actions, and object patterns.
+
+### Group Name Casing from OAuth Providers
+
+OAuth providers (including SAML implementations) **preserve the original casing** of group names from the identity provider. Group names are not normalized to lowercase.
+
+**Examples of group name casing:**
+- **GitHub**: Team slugs are typically lowercase (e.g., `developers`, `admins`)
+- **GitLab**: Group names preserve original casing (e.g., `AdminGroup`, `PowerUsers`)
+- **SAML**: Group names maintain whatever casing the SAML assertion provides (e.g., `ADMIN_USERS`, `Domain Admins`, `PowerUsers`)
+
+### Case Sensitivity Implications
+
+When writing RBAC policies, you must match the **exact casing** used by your OAuth provider:
+
+**❌ This will NOT work:**
+```
+# SAML provides group: "ADMIN_USERS"
+# Policy written in lowercase:
+p, role:admin_users, settings, get, *, allow
+```
+
+**✅ These WILL work:**
+```
+# Match exact casing from SAML:
+p, role:ADMIN_USERS, settings, get, *, allow
+
+# Use glob patterns for case variations:
+p, role:ADMIN_*, settings, get, *, allow
+p, role:*USERS, settings, get, *, allow
+```
+
+### Recommendations
+
+1. **Check your OAuth provider's group naming** by examining JWT tokens or session data
+2. **Use exact casing** in RBAC policies to match your provider's output
+3. **Consider glob patterns** if group names vary in casing
+4. **Document group naming conventions** used by your identity provider
+
+### Complete Example with Case Sensitivity
+
+```
+# GitHub teams (typically lowercase)
+g, developers, dev-role
+p, dev-role, modules, get, my-org/*, allow
+
+# SAML groups (preserve original casing)
+g, ADMIN_USERS, admin-role
+g, PowerUsers, power-role
+p, admin-role, settings, get, *, allow
+p, power-role, modules, *, *, allow
+```
+
+For more information about your OAuth provider's group naming behavior, consult your identity provider's documentation.
+
+For example, an object c

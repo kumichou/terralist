@@ -26,6 +26,7 @@ const (
 	ResourceModules     = "modules"
 	ResourceProviders   = "providers"
 	ResourceAuthorities = "authorities"
+	ResourceSettings    = "settings"
 
 	ActionGet    = "get"
 	ActionUpdate = "update"
@@ -42,6 +43,7 @@ var (
 		ResourceModules,
 		ResourceProviders,
 		ResourceAuthorities,
+		ResourceSettings,
 	}
 
 	Actions []string = []string{

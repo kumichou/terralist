@@ -2,6 +2,7 @@ import type { RoutePrecondition } from 'svelte-spa-router';
 import { wrap } from 'svelte-spa-router/wrap';
 
 import config from '@/config';
+import { Permissions } from '@/api/permissions';
 
 import Login from '@/pages/Login.svelte';
 import Loading from '@/pages/Loading.svelte';
@@ -44,19 +45,40 @@ const baseConditions: RoutePrecondition[] = [
   }
 ];
 
-const isAuthorizedUser = () => {
+const isAuthorizedForSettings = () => {
   return async () => {
-    const user = UserStore.get();
-    if (user === null) {
-      return false;
+    try {
+      const result = await Permissions.checkSettingsAccess();
+      if (result.status === 'OK') {
+        return result.data.can_access_settings;
+      } else {
+        // Fallback to current behavior if RBAC check fails
+        const user = UserStore.get();
+        if (user === null) {
+          return false;
+        }
+        const authorizedUsers =
+          config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
+        return (
+          authorizedUsers[0] === '' ||
+          authorizedUsers.includes(user.userName) ||
+          authorizedUsers.includes(user.userEmail)
+        );
+      }
+    } catch (error) {
+      // Fallback to current behavior if API call fails
+      const user = UserStore.get();
+      if (user === null) {
+        return false;
+      }
+      const authorizedUsers =
+        config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
+      return (
+        authorizedUsers[0] === '' ||
+        authorizedUsers.includes(user.userName) ||
+        authorizedUsers.includes(user.userEmail)
+      );
     }
-    const authorizedUsers =
-      config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
-    return (
-      authorizedUsers[0] === '' ||
-      authorizedUsers.includes(user.userName) ||
-      authorizedUsers.includes(user.userEmail)
-    );
   };
 };
 
@@ -108,7 +130,7 @@ const routes = {
     loadingComponent: Loading,
     conditions: baseConditions.concat([
       isAuthenticatedCondition(),
-      isAuthorizedUser()
+      isAuthorizedForSettings()
     ]),
     userData: newUserData({
       onFailureRedirectTo: '/login'

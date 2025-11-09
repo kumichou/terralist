@@ -12,6 +12,8 @@
 
   import config from '@/config';
   import context, { type Theme } from '@/context';
+  import { UserStore } from '@/lib/auth';
+  import { Permissions } from '@/api/permissions';
 
   import { useFlag } from '@/lib/hooks';
 
@@ -23,8 +25,46 @@
 
   let currentTheme: Theme | undefined;
   let themeUnsubscriber: Unsubscriber;
+  let isAuthorizedForSettings = false;
 
-  onMount(() => {
+  // Check if user is authorized for settings via RBAC
+  async function updateAuthorization() {
+    try {
+      const result = await Permissions.checkSettingsAccess();
+      if (result.status === 'OK') {
+        isAuthorizedForSettings = result.data.can_access_settings;
+      } else {
+        // Fallback to current behavior if RBAC check fails
+        const user = UserStore.get();
+        if (user !== null) {
+          const authorizedUsers =
+            config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
+          isAuthorizedForSettings =
+            authorizedUsers[0] === '' ||
+            authorizedUsers.includes(user.userName) ||
+            authorizedUsers.includes(user.userEmail);
+        } else {
+          isAuthorizedForSettings = false;
+        }
+      }
+    } catch (error) {
+      // Fallback to current behavior if API call fails
+      const user = UserStore.get();
+      if (user !== null) {
+        const authorizedUsers =
+          config.runtime.TERRALIST_AUTHORIZED_USERS.split(',');
+        isAuthorizedForSettings =
+          authorizedUsers[0] === '' ||
+          authorizedUsers.includes(user.userName) ||
+          authorizedUsers.includes(user.userEmail);
+      } else {
+        isAuthorizedForSettings = false;
+      }
+    }
+  }
+
+  onMount(async () => {
+    await updateAuthorization();
     themeUnsubscriber = context.theme.subscribe(value => {
       currentTheme = value;
     });
@@ -89,7 +129,9 @@
     "
     use:clickOutside={resetOpen}>
     <NavbarAnchor title="Dashboard" href="/" icon="home" />
-    <NavbarAnchor title="Settings" href="/settings" icon="settings" />
+    {#if isAuthorizedForSettings}
+      <NavbarAnchor title="Settings" href="/settings" icon="settings" />
+    {/if}
     <NavbarAnchor title="Sign Out" href="/logout" icon="logout" />
     {#if currentTheme === 'dark'}
       <NavbarButton

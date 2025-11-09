@@ -248,6 +248,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		SessionDetailsRoute:   apiV1Group.Prefix() + loginController.SessionDetailsRoute(),
 		ClearSessionRoute:     apiV1Group.Prefix() + loginController.ClearSessionRoute(),
 		AuthorizedUsers:       userConfig.AuthorizedUsers,
+		Authorization:         authorization,
 	})
 
 	return &Server{
