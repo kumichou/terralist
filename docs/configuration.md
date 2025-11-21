@@ -469,7 +469,7 @@ The Identity Provider SSO certificate (PEM format). Required if certificate cann
 
 ### `saml-name-attribute`
 
-The SAML attribute name that contains the user's name.
+The SAML attribute name that contains the user's name. Supports Go template syntax for combining multiple attributes. Use `{{.attributeName}}` syntax to reference SAML attributes.
 
 | Name | Value |
 | --- | --- |
@@ -478,6 +478,17 @@ The SAML attribute name that contains the user's name.
 | default | `displayName` |
 | cli | `--saml-name-attribute` |
 | env | `TERRALIST_SAML_NAME_ATTRIBUTE` |
+
+**Template Examples:**
+- `"displayName"` - Direct attribute lookup
+- `"{{.givenName}} {{.sn}}"` - Combine first and last name
+- `"{{.displayName}} ({{.department}})"` - Add department info
+
+**Template Behavior:**
+- If template syntax is detected (contains `{{` and `}}`), template is evaluated
+- Template variables reference SAML attribute names (e.g., `{{.givenName}}`)
+- If template results in empty string, falls back to standard attribute lookup
+- Invalid templates log errors and fall back to standard lookup
 
 ### `saml-email-attribute`
 
