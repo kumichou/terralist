@@ -8,6 +8,7 @@ import (
 	"terralist/pkg/database"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // StandaloneApiKeyRepository describes a service that can interact with the standalone API keys database.
@@ -55,7 +56,9 @@ func (r *DefaultStandaloneApiKeyRepository) FindWithPolicies(id uuid.UUID) (*api
 	key := &apikey.ApiKey{}
 
 	if err := r.Database.Handler().
-		Preload("Policies").
+		Preload("Policies", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC")
+		}).
 		Where("id = ?", id).
 		First(key).
 		Error; err != nil {
@@ -93,7 +96,9 @@ func (r *DefaultStandaloneApiKeyRepository) List() ([]apikey.ApiKey, error) {
 	var keys []apikey.ApiKey
 
 	if err := r.Database.Handler().
-		Preload("Policies").
+		Preload("Policies", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC")
+		}).
 		Find(&keys).
 		Error; err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrDatabaseFailure, err)

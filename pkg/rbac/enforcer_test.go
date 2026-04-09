@@ -66,8 +66,8 @@ func TestEvaluateInline(t *testing.T) {
 			Convey("When checking the denied action", func() {
 				result := EvaluateInline(policies, "modules", "delete", "my-authority/my-module/aws")
 
-				Convey("Then it should be denied (deny takes precedence)", func() {
-					So(result, ShouldBeFalse)
+				Convey("Then it should be allowed because the first matching policy wins", func() {
+					So(result, ShouldBeTrue)
 				})
 			})
 
@@ -76,6 +76,21 @@ func TestEvaluateInline(t *testing.T) {
 
 				Convey("Then it should be allowed", func() {
 					So(result, ShouldBeTrue)
+				})
+			})
+		})
+
+		Convey("Given a deny policy before a broader allow policy", func() {
+			policies := []auth.Policy{
+				{Resource: "modules", Action: "delete", Object: "*", Effect: "deny"},
+				{Resource: "modules", Action: "*", Object: "*", Effect: "allow"},
+			}
+
+			Convey("When checking the denied action", func() {
+				result := EvaluateInline(policies, "modules", "delete", "my-authority/my-module/aws")
+
+				Convey("Then it should be denied because the first matching policy wins", func() {
+					So(result, ShouldBeFalse)
 				})
 			})
 		})
@@ -249,5 +264,80 @@ func TestProtect_SettingsRequiresExplicitPolicy(t *testing.T) {
 
 	if err := adminEnforcer.Protect(adminUser, ResourceSettings, ActionGet, "page"); err != nil {
 		t.Fatalf("expected admin user to be allowed for settings, got: %v", err)
+	}
+}
+
+func TestProtect_ServerPolicyOrderUsesImplicitPriority(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		policyCSV string
+		wantErr   error
+	}{
+		{
+			name: "earlier allow wins over later deny",
+			policyCSV: `
+p, alice@example.com, settings, get, page, allow
+p, alice@example.com, settings, get, page, deny
+`,
+			wantErr: nil,
+		},
+		{
+			name: "earlier deny wins over later allow",
+			policyCSV: `
+p, alice@example.com, settings, get, page, deny
+p, alice@example.com, settings, get, page, allow
+`,
+			wantErr: ErrUnauthorizedSubject,
+		},
+	}
+
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			enforcer, err := NewEnforcerFromString(tt.policyCSV, "readonly")
+			if err != nil {
+				t.Fatalf("failed to create enforcer: %v", err)
+			}
+
+			user := auth.User{
+				Name:  "alice",
+				Email: "alice@example.com",
+			}
+
+			err = enforcer.Protect(user, ResourceSettings, ActionGet, "page")
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Protect() error = %v, want %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestProtect_AdminGroupAllowBeatsDeveloperDeny(t *testing.T) {
+	t.Parallel()
+
+	policy := `
+p, role:MY_ADMIN_GROUP, settings, get, page, allow
+p, role:developer, settings, get, page, deny
+g, role:MY_ADMIN_GROUP, role:admin
+g, role:MY_DEVELOPER_GROUP, role:developer
+`
+
+	enforcer, err := NewEnforcerFromString(policy, "readonly")
+	if err != nil {
+		t.Fatalf("failed to create enforcer: %v", err)
+	}
+
+	user := auth.User{
+		Name:   "alice",
+		Email:  "alice@example.com",
+		Groups: []string{"MY_ADMIN_GROUP", "MY_DEVELOPER_GROUP"},
+	}
+
+	if err := enforcer.Protect(user, ResourceSettings, ActionGet, "page"); err != nil {
+		t.Fatalf("expected overlapping admin and developer groups to allow settings access, got: %v", err)
 	}
 }

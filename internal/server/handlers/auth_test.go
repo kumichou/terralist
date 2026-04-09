@@ -264,6 +264,25 @@ func TestCanPerform_InlinePolicies(t *testing.T) {
 				})
 			})
 		})
+
+		Convey("Given overlapping inline policies", func() {
+			user := auth.User{
+				Name:  "apikey:some-uuid",
+				Email: "creator@example.com",
+				InlinePolicies: []auth.Policy{
+					{Resource: rbac.ResourceSettings, Action: rbac.ActionGet, Object: "page", Effect: rbac.EffectAllow},
+					{Resource: rbac.ResourceSettings, Action: rbac.ActionGet, Object: "page", Effect: rbac.EffectDeny},
+				},
+			}
+
+			Convey("When an earlier allow is followed by a later deny", func() {
+				result := authorization.CanPerform(user, rbac.ResourceSettings, rbac.ActionGet, "page")
+
+				Convey("Then access should still be allowed because inline policies follow first-match-wins", func() {
+					So(result, ShouldBeTrue)
+				})
+			})
+		})
 	})
 }
 
