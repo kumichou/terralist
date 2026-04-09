@@ -184,11 +184,10 @@ func (e *Enforcer) enforce(subjects []string, resource, object, action string) b
 	return lo.SomeBy(results, func(r bool) bool { return r })
 }
 
-// EvaluateInline evaluates a set of inline policies against a request.
-// It follows the same semantics as the casbin model:
-// allowed if some policy allows AND no policy denies.
+// EvaluateInline evaluates standalone API key policies against a request.
+// Inline policies follow the same ordered priority semantics as the
+// server-side Casbin policy file: the first matching policy wins.
 func EvaluateInline(policies []auth.Policy, resource, action, object string) bool {
-	hasAllow := false
 	for _, p := range policies {
 		resMatchVal, _ := globMatch(resource, p.Resource)
 		actMatchVal, _ := globMatch(action, p.Action)
@@ -199,15 +198,11 @@ func EvaluateInline(policies []auth.Policy, resource, action, object string) boo
 		objMatch, _ := objMatchVal.(bool)
 
 		if resMatch && actMatch && objMatch {
-			if p.Effect == EffectDeny {
-				return false
-			}
-			if p.Effect == EffectAllow {
-				hasAllow = true
-			}
+			return p.Effect == EffectAllow
 		}
 	}
-	return hasAllow
+
+	return false
 }
 
 // Protect checks if the user is authorized to perform the action on the resource and object,

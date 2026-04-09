@@ -107,6 +107,55 @@ func TestSettingsCapabilityController_DeniesReadonlyDefault(t *testing.T) {
 	}
 }
 
+func TestSettingsCapabilityController_AdminGroupStillAllowedWithDeveloperGroup(t *testing.T) {
+	jwtManager, authz, store := testSettingsDeps(t, `
+p, role:MY_ADMIN_GROUP, settings, get, page, allow
+p, role:developer, settings, get, page, deny
+g, role:MY_ADMIN_GROUP, role:admin
+g, role:MY_DEVELOPER_GROUP, role:developer
+`)
+
+	controller := &DefaultSettingsCapabilityController{
+		Authentication: &handlers.Authentication{
+			JWT:   jwtManager,
+			Store: store,
+		},
+		Authorization: authz,
+	}
+
+	router := ginRouterWithController(controller)
+
+	token, err := jwtManager.Build(auth.User{
+		Name:   "alice",
+		Email:  "alice@example.com",
+		Groups: []string{"MY_ADMIN_GROUP", "MY_DEVELOPER_GROUP"},
+	}, 3600)
+	if err != nil {
+		t.Fatalf("failed to build jwt token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/api/auth/capabilities/settings", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var body struct {
+		Allowed bool `json:"allowed"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to parse body: %v", err)
+	}
+
+	if !body.Allowed {
+		t.Fatalf("expected allowed=true")
+	}
+}
+
 func TestSettingsCapabilityController_RequiresAuthentication(t *testing.T) {
 	jwtManager, authz, store := testSettingsDeps(t, "")
 

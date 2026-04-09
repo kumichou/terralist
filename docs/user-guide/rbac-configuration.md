@@ -21,6 +21,14 @@ The `role:anonymous` is a special role that is assigned to unauthenticated users
 
 The `role:readonly` and `role:admin` roles have baked-in default policies that are always loaded. User-provided policies are evaluated on top of these defaults.
 
+## Policy Order
+
+Server-side `p` rules use ordered priority semantics. When multiple policies match the same request, the first matching policy wins.
+
+Keep more specific overrides earlier in the file than broader fallback rules. Built-in default policies for `role:readonly` and `role:admin` are loaded after the policy file, so explicit file rules still take precedence over those defaults.
+
+Migration note: overlapping allow and deny rules may behave differently than older deny-overrides configurations. Review any policy files that intentionally relied on a later deny still taking precedence over an earlier allow.
+
 ## Default Policy for Authenticated Users
 
 When a user is authenticated in Terralist, it will be granted the role specified by the `rbac-default-role` configuration option, if there is no other role specified for the given user.
@@ -35,6 +43,8 @@ Syntax: `g, <username/useremail/group>, <role>`
 
 - `<username/useremail/group>`: The entity to whom the role will be assigned. Depending on the OAuth provider implementation those values can represent different things; Usually, the `username` refers to the `sub` claim, while the `useremail` and `group` refers to a custom claims, which might not even be supported by the provider you are using. Check the OAuth provider documentation for more details.
 - `<role>`: The internal role to which the entity will be assigned.
+
+When mapping group claims, use the same subject string Terralist evaluates at runtime. Terralist prefixes each group with `role:`, so a SAML group value `MY_ADMIN_GROUP` must be referenced as `role:MY_ADMIN_GROUP` in both `g` and `p` rules.
 
 <!-- TODO: Add proper oauth provider docs -->
 
@@ -77,7 +87,7 @@ Unlike modules or providers, API keys have no natural organizational hierarchy. 
 
 When evaluating RBAC permissions on the `api-keys` resource, the scope is used as the policy object. This means you can write policies such as:
 
-```
+```csv
 p, team-a-manager@example.com, api-keys, *, team-a, allow
 p, team-b-manager@example.com, api-keys, *, team-b, allow
 ```
@@ -86,7 +96,7 @@ In this example, Team A's manager can create, view, and delete API keys scoped t
 
 Scopes support glob matching, which enables hierarchical delegation. For example, a lead who oversees multiple sub-teams can be granted access to all their keys with a single policy:
 
-```
+```csv
 p, lead@example.com, api-keys, *, team-a*, allow
 ```
 
@@ -97,6 +107,8 @@ The scope is purely organizational -- it does not affect what the API key can ac
 ## API Key Policies
 
 API keys carry their own RBAC policies. When authenticating with an API key, the key's inline policies are evaluated directly -- the server-side policy file is not consulted.
+
+Inline API key policies use the same ordered priority semantics as the server-side RBAC policy file, so the first matching policy wins.
 
 Each policy on an API key follows the same format as server-side policies:
 
@@ -129,8 +141,8 @@ p, role:authority-admin, authorities, *, *, allow
 Then map identity claims (user/group/email) to those roles:
 
 ```csv
-g, SSOAWS_PLATFORM, role:authority-admin
-g, SSOAWS_ENGINEERING, role:authority-reader
+g, role:MY_AUTHORITY_ADMIN_GROUP, role:authority-admin
+g, role:MY_DEVELOPER_GROUP, role:authority-reader
 ```
 
 ## Settings Page Access With RBAC
@@ -148,9 +160,18 @@ Migration note: if you previously used `--authorized-users`, convert that access
 Example policies:
 
 ```csv
+# Higher-priority allow for the admin SAML group
+p, role:MY_ADMIN_GROUP, settings, get, page, allow
+
 # Explicitly deny settings page access for developer role
 p, role:developer, settings, get, page, deny
 
 # Allow settings page access for authority-admin role
 p, role:authority-admin, settings, get, page, allow
+
+# Map SAML group values to internal roles
+g, role:MY_ADMIN_GROUP, role:admin
+g, role:MY_DEVELOPER_GROUP, role:developer
 ```
+
+With the ordering above, a user who belongs to both `MY_ADMIN_GROUP` and `MY_DEVELOPER_GROUP` still sees the Settings page because the earlier admin-group allow wins over the later developer deny.
