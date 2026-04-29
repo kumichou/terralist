@@ -266,6 +266,13 @@ tasks:
         go test -count=1 {{if eq .WITH_COVER "true"}}-coverprofile={{.COVER_PROFILE}}{{end}} {{.TEST_PACKAGES}}
         {{- end -}}
 
+  test:unit:frontend:
+    desc: "Run frontend unit tests."
+    silent: true
+    dir: web
+    cmds:
+      - yarn run test:unit
+
   test:e2e:
     desc: "Run all E2E tests."
     silent: true
@@ -282,6 +289,7 @@ tasks:
       - task: test:unit
         vars:
           WITH_COVER: "true"
+      - task: test:unit:frontend
       - task: test:e2e
 
   test:coverage:
