@@ -230,20 +230,11 @@
   margin-bottom: 1rem;
 }
 
-/*
- * Strip the github-markdown-css `pre` styling (background, padding, margin,
- * 85% font size) from the Shiki-rendered `pre`. We need `!important` because
- * github-markdown-css is injected via `<svelte:head>` after main.css and
- * therefore wins on equal specificity, and Shiki sets the background via an
- * inline `style` attribute which can only be defeated with `!important`.
- */
-.markdown-body .md-code-block pre,
-.markdown-body .md-code-block pre code,
-.markdown-body .md-code-block .md-code-content,
-.markdown-body .md-code-block .md-code-content > pre {
-  background: transparent !important;
-  margin: 0 !important;
-  padding: 0 !important;
+.md-code-block .github-light {
+  background-color: #f6f8fa !important; 
+}
+.md-code-block .github-dark {
+  background-color: #151b23 !important;
 }
 
 .markdown-body code,
